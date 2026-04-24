@@ -366,15 +366,9 @@ export default function RecordRound() {
                 {currentHole.hole}H <span style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>▾</span>
               </h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ textAlign: 'center' }}>
+                <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>PAR</div>
-                  <div className="toggle-group" style={{ marginTop: '0.1rem', gap: '0.25rem' }}>
-                    {[3, 4, 5].map(p => (
-                      <div key={p} className={`toggle-btn ${currentHole.par === p ? 'active' : ''}`} onClick={() => updateHole('par', p)} style={{ padding: '0.15rem 0.5rem', fontSize: '0.8rem' }}>
-                        {p}
-                      </div>
-                    ))}
-                  </div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'white' }}>{currentHole.par}</div>
                 </div>
               </div>
             </div>
