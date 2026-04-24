@@ -351,11 +351,11 @@ export default function RecordRound() {
         <div style={{ animation: 'fadeIn 0.3s ease-out', paddingBottom: '2rem' }}>
           <div style={{ marginBottom: '1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1rem' }}>{course}</h3>
+              <h3 style={{ margin: 0, fontSize: '1rem', color: '#1e293b' }}>{course}</h3>
               <button onClick={openParSettings} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: 0 }}>⚙️</button>
             </div>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-              TOTAL: <strong style={{ color: 'white' }}>{totalRoundScore}</strong> / {totalRoundPar}
+            <div style={{ color: '#475569', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+              TOTAL: <strong style={{ color: '#0f172a' }}>{totalRoundScore}</strong> / {totalRoundPar}
             </div>
           </div>
 
