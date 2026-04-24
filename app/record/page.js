@@ -57,10 +57,10 @@ function SortableShotItem({ id, shot, idx, onEdit, onRemove }) {
         >
           ☰
         </span>
-        <strong style={{ color: 'var(--accent-neon)', marginRight: '0.5rem' }}>#{idx + 1}</strong>
-        <span>{shot.club} | {shot.shotType} | {shot.landing} </span>
-        {shot.tDis && <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>({shot.tDis}m)</span>}
-        {shot.penalty !== '-' && <span style={{ color: 'var(--danger)', marginLeft: '0.5rem', fontSize: '0.8rem' }}>[{shot.penalty}]</span>}
+        <strong style={{ color: 'var(--accent-neon)', marginRight: '0.3rem' }}>#{idx + 1}</strong>
+        <span>{shot.club}</span>
+        {shot.tDis && <span style={{ color: 'var(--text-secondary)', marginLeft: '0.3rem' }}>({shot.tDis}m)</span>}
+        {shot.penalty !== '-' && <span style={{ color: 'var(--danger)', marginLeft: '0.3rem' }}>[{shot.penalty}]</span>}
       </div>
       <button 
         onPointerDown={(e) => e.stopPropagation()} 
@@ -398,10 +398,9 @@ export default function RecordRound() {
           </div>
 
           {/* SHOT LIST SECTION */}
-          <div className="glass-panel">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>개별 샷 기록 ({currentShots.length}타)</h3>
-              <button className="btn btn-primary" style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.9rem' }} onClick={openAddShotModal}>
+          <div className="glass-panel" style={{ padding: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+              <button className="btn btn-primary" style={{ width: 'auto', padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={openAddShotModal}>
                 + 샷 추가
               </button>
             </div>
@@ -435,20 +434,16 @@ export default function RecordRound() {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
             {currentHoleIdx > 0 && (
-              <button className="btn btn-secondary" onClick={() => setCurrentHoleIdx(i => i - 1)}>
-                이전 홀
+              <button className="btn btn-secondary" style={{ padding: '0.5rem' }} onClick={() => setCurrentHoleIdx(i => i - 1)}>
+                &lt;&lt;
               </button>
             )}
             
-            {currentHoleIdx < 17 ? (
-              <button className="btn btn-primary" onClick={() => setCurrentHoleIdx(i => i + 1)}>
-                다음 홀 ➔
-              </button>
-            ) : (
-              <button className="btn btn-primary" onClick={handleFinish} style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
-                라운드 완료
+            {currentHoleIdx < 17 && (
+              <button className="btn btn-primary" style={{ padding: '0.5rem' }} onClick={() => setCurrentHoleIdx(i => i + 1)}>
+                &gt;&gt;
               </button>
             )}
           </div>
@@ -628,9 +623,17 @@ export default function RecordRound() {
               <button className="btn btn-secondary" onClick={() => setShowParSettingsModal(false)}>취소</button>
               <button className="btn btn-primary" onClick={saveParSettings}>설정 저장</button>
             </div>
+
+            <button 
+              className="btn btn-secondary"
+              style={{ marginTop: '1rem' }}
+              onClick={() => { setShowParSettingsModal(false); handleFinish(); }}
+            >
+              라운드 종료
+            </button>
             
             <button 
-              style={{ width: '100%', marginTop: '1rem', padding: '0.8rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+              style={{ width: '100%', marginTop: '0.5rem', padding: '0.8rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
               onClick={deleteRound}
             >
               라운드 영구 삭제
