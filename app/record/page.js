@@ -454,7 +454,7 @@ export default function RecordRound() {
       {showShotModal && (
         <div className="modal-overlay" onClick={() => setShowShotModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3 style={{ marginTop: 0, color: 'var(--accent-neon)' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '0.5rem', color: 'var(--accent-neon)', fontSize: '1rem' }}>
               {editingShotId ? '샷 기록 수정' : '새로운 샷 기록'}
             </h3>
             
@@ -500,14 +500,14 @@ export default function RecordRound() {
                   </div>
                 ))}
               </div>
-              <div className="distance-inputs">
+              <div className="distance-inputs" style={{ marginTop: '0.25rem' }}>
                 <div className="distance-input-wrapper">
-                  <span title="Target Distance">T.Dis</span>
-                  <input type="number" className="form-input" style={{ padding: '0.5rem' }} value={shotDraft.tDis} onChange={e => setShotDraft({...shotDraft, tDis: e.target.value})} />
+                  <span style={{ fontSize: '0.7rem' }}>T.Dis</span>
+                  <input type="number" className="form-input" style={{ padding: '0.3rem', fontSize: '0.8rem' }} value={shotDraft.tDis} onChange={e => setShotDraft({...shotDraft, tDis: e.target.value})} />
                 </div>
                 <div className="distance-input-wrapper">
-                  <span title="Final Distance">F.Dis</span>
-                  <input type="number" className="form-input" style={{ padding: '0.5rem' }} value={shotDraft.fDis} onChange={e => setShotDraft({...shotDraft, fDis: e.target.value})} />
+                  <span style={{ fontSize: '0.7rem' }}>F.Dis</span>
+                  <input type="number" className="form-input" style={{ padding: '0.3rem', fontSize: '0.8rem' }} value={shotDraft.fDis} onChange={e => setShotDraft({...shotDraft, fDis: e.target.value})} />
                 </div>
               </div>
             </div>
@@ -525,16 +525,17 @@ export default function RecordRound() {
 
             <div className="form-group">
               <label className="form-label">Memo</label>
-              <textarea 
+              <input 
+                type="text"
                 className="form-input" 
-                rows="2" 
+                style={{ padding: '0.3rem', fontSize: '0.8rem' }}
                 value={shotDraft.memo} 
                 onChange={e => setShotDraft({...shotDraft, memo: e.target.value})}
-                placeholder="샷에 대한 메모를 남겨주세요"
-              ></textarea>
+                placeholder="간단한 메모"
+              />
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem' }}>
               <button className="btn btn-secondary" onClick={() => setShowShotModal(false)}>취소</button>
               <button className="btn btn-primary" onClick={saveShot}>
                 {editingShotId ? '수정 완료' : '추가'}
