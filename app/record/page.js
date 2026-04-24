@@ -369,8 +369,7 @@ export default function RecordRound() {
               </h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>PAR</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'white' }}>{currentHole.par}</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'white' }}>PAR {currentHole.par}</div>
                 </div>
               </div>
             </div>
