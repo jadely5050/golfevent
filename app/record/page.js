@@ -349,12 +349,14 @@ export default function RecordRound() {
     <div className="record-container">
       <div className="record-side-panel">
         <div style={{ animation: 'fadeIn 0.3s ease-out', paddingBottom: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ margin: 0, fontSize: '1rem' }}>{course}</h3>
-            <span style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-              TOTAL: <strong style={{ color: 'white' }}>{totalRoundScore}</strong> / {totalRoundPar}
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem' }}>{course}</h3>
               <button onClick={openParSettings} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: 0 }}>⚙️</button>
-            </span>
+            </div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+              TOTAL: <strong style={{ color: 'white' }}>{totalRoundScore}</strong> / {totalRoundPar}
+            </div>
           </div>
 
           <div className="glass-panel" style={{ padding: '0.75rem 1rem' }}>
@@ -428,20 +430,21 @@ export default function RecordRound() {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {currentHoleIdx > 0 && (
-              <button className="btn btn-secondary" style={{ padding: '0.5rem' }} onClick={() => setCurrentHoleIdx(i => i - 1)}>
-                &lt;&lt;
-              </button>
-            )}
-            
-            {currentHoleIdx < 17 && (
-              <button className="btn btn-primary" style={{ padding: '0.5rem' }} onClick={() => setCurrentHoleIdx(i => i + 1)}>
-                &gt;&gt;
-              </button>
-            )}
-          </div>
         </div>
+      </div>
+
+      <div className="fixed-nav-buttons">
+        {currentHoleIdx > 0 && (
+          <button className="btn btn-secondary" style={{ padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i - 1)}>
+            &lt;&lt;
+          </button>
+        )}
+        
+        {currentHoleIdx < 17 && (
+          <button className="btn btn-primary" style={{ padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i + 1)}>
+            &gt;&gt;
+          </button>
+        )}
       </div>
 
       {/* SHOT MODAL */}
