@@ -353,7 +353,7 @@ export default function RecordRound() {
             <h3 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>{course}</h3>
             <button onClick={openParSettings} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: 0 }}>⚙️</button>
           </div>
-          <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+          <div style={{ color: 'white', fontSize: '0.9rem', marginTop: '0.25rem' }}>
             TOTAL: <strong style={{ color: 'var(--accent-neon)' }}>{totalRoundScore}</strong> / {totalRoundPar}
           </div>
         </div>
@@ -380,13 +380,13 @@ export default function RecordRound() {
             <div style={{ paddingBottom: '0.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', display: 'block', marginBottom: '0.1rem' }}>총 타수</span>
+                  <span style={{ color: 'white', fontSize: '0.7rem', display: 'block', marginBottom: '0.1rem' }}>SCORE</span>
                   <strong style={{ fontSize: '1.2rem', color: currentHoleScore <= currentHole.par && currentHoleScore > 0 ? 'var(--accent-neon)' : 'white' }}>
                     {currentHoleScore}
                   </strong>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', display: 'block', marginBottom: '0.1rem' }}>퍼팅 수</span>
+                  <span style={{ color: 'white', fontSize: '0.7rem', display: 'block', marginBottom: '0.1rem' }}>PUTT</span>
                   <strong style={{ fontSize: '1rem', color: 'white' }}>
                     {currentHolePutts}
                   </strong>
@@ -399,7 +399,7 @@ export default function RecordRound() {
           <div className="glass-panel" style={{ padding: '0.75rem' }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.3rem', marginTop: '0.15rem' }}>
               <button className="btn btn-primary" style={{ width: 'auto', padding: '0.6rem 1.2rem', fontSize: '1.2rem' }} onClick={openAddShotModal}>
-                + 샷 추가
+                SHOT+
               </button>
             </div>
             
