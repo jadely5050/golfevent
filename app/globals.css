@@ -74,7 +74,7 @@ body {
   position: absolute;
   top: 0;
   right: 0;
-  width: 80%;
+  width: 45%;
   height: 100vh;
   height: 100dvh;
   overflow-y: auto;
@@ -108,7 +108,7 @@ body {
 
 @media (min-width: 768px) {
   .record-side-panel {
-    width: 350px;
+    width: 300px;
   }
 }
 
