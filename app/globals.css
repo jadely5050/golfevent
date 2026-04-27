@@ -45,8 +45,8 @@ body {
   position: absolute;
   bottom: 0;
   left: 0;
-  height: 80vh;
-  height: 80dvh;
+  height: 96vh;
+  height: 96dvh;
   width: 100%;
   z-index: 0;
   display: flex;
