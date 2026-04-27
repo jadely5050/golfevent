@@ -347,17 +347,20 @@ export default function RecordRound() {
 
   return (
     <div className="record-container">
+      <div className="round-info-panel">
+        <div className="glass-panel" style={{ padding: '0.75rem', marginBottom: '0', borderRadius: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>{course}</h3>
+            <button onClick={openParSettings} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: 0 }}>⚙️</button>
+          </div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+            TOTAL: <strong style={{ color: 'var(--accent-neon)' }}>{totalRoundScore}</strong> / {totalRoundPar}
+          </div>
+        </div>
+      </div>
+
       <div className="record-side-panel">
         <div style={{ animation: 'fadeIn 0.3s ease-out', paddingBottom: '2rem' }}>
-          <div className="glass-panel" style={{ padding: '0.75rem', marginBottom: '1rem', borderRadius: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>{course}</h3>
-              <button onClick={openParSettings} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: 0 }}>⚙️</button>
-            </div>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-              TOTAL: <strong style={{ color: 'var(--accent-neon)' }}>{totalRoundScore}</strong> / {totalRoundPar}
-            </div>
-          </div>
 
           <div className="glass-panel" style={{ padding: '0.75rem 1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
@@ -395,7 +398,7 @@ export default function RecordRound() {
           {/* SHOT LIST SECTION */}
           <div className="glass-panel" style={{ padding: '0.75rem' }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.3rem', marginTop: '0.15rem' }}>
-              <button className="btn btn-primary" style={{ width: 'auto', padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={openAddShotModal}>
+              <button className="btn btn-primary" style={{ width: 'auto', padding: '0.6rem 1.2rem', fontSize: '1.2rem' }} onClick={openAddShotModal}>
                 + 샷 추가
               </button>
             </div>
