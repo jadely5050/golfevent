@@ -47,7 +47,7 @@ body {
   left: 0;
   height: 80vh;
   height: 80dvh;
-  width: 60%; /* Occupy the left side where the side panel is not */
+  width: 100%;
   z-index: 0;
   display: flex;
   align-items: flex-end;
@@ -74,15 +74,18 @@ body {
   position: absolute;
   top: 0;
   right: 0;
-  width: 40%;
+  width: 80%;
   height: 100vh;
   height: 100dvh;
   overflow-y: auto;
-  background: transparent;
+  background: rgba(11, 15, 25, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-left: 1px solid var(--glass-border);
   padding: 1.5rem 0.75rem;
   display: flex;
   flex-direction: column;
+  z-index: 5;
 }
 
 .round-info-panel {
@@ -105,7 +108,7 @@ body {
 
 @media (min-width: 768px) {
   .record-side-panel {
-    width: 320px;
+    width: 350px;
   }
 }
 
