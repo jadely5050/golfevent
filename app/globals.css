@@ -48,7 +48,7 @@ body {
   position: absolute;
   top: 0;
   right: 0;
-  width: 40%;
+  width: 20%;
   height: 100vh;
   height: 100dvh;
   overflow-y: auto;
@@ -324,6 +324,7 @@ p { margin: 0 0 1rem 0; line-height: 1.5; color: var(--text-secondary); }
 .chip-group {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.3rem;
   margin-top: 0.15rem;
 }

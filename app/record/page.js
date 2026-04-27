@@ -349,13 +349,13 @@ export default function RecordRound() {
     <div className="record-container">
       <div className="record-side-panel">
         <div style={{ animation: 'fadeIn 0.3s ease-out', paddingBottom: '2rem' }}>
-          <div style={{ marginBottom: '1rem' }}>
+          <div className="glass-panel" style={{ padding: '0.75rem', marginBottom: '1rem', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1rem', color: '#1e293b' }}>{course}</h3>
+              <h3 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>{course}</h3>
               <button onClick={openParSettings} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: 0 }}>⚙️</button>
             </div>
-            <div style={{ color: '#475569', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-              TOTAL: <strong style={{ color: '#0f172a' }}>{totalRoundScore}</strong> / {totalRoundPar}
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+              TOTAL: <strong style={{ color: 'var(--accent-neon)' }}>{totalRoundScore}</strong> / {totalRoundPar}
             </div>
           </div>
 
@@ -394,7 +394,7 @@ export default function RecordRound() {
 
           {/* SHOT LIST SECTION */}
           <div className="glass-panel" style={{ padding: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.3rem', marginTop: '0.15rem' }}>
               <button className="btn btn-primary" style={{ width: 'auto', padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={openAddShotModal}>
                 + 샷 추가
               </button>
@@ -455,7 +455,7 @@ export default function RecordRound() {
             </h3>
             
             <div className="form-group">
-              <label className="form-label">CLUB</label>
+              <label className="form-label" style={{ textAlign: 'right' }}>CLUB</label>
               <div className="chip-group">
                 {CLUBS.map(c => (
                   <div key={c} className={`chip ${shotDraft.club === c ? 'active' : ''}`} onClick={() => setShotDraft({...shotDraft, club: c})}>
@@ -466,7 +466,7 @@ export default function RecordRound() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">SHOT</label>
+              <label className="form-label" style={{ textAlign: 'right' }}>SHOT</label>
               <div className="chip-group">
                 {SHOTS.map(s => (
                   <div key={s} className={`chip ${shotDraft.shotType === s ? 'active' : ''}`} onClick={() => setShotDraft({...shotDraft, shotType: s})}>
@@ -477,7 +477,7 @@ export default function RecordRound() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">LANDING</label>
+              <label className="form-label" style={{ textAlign: 'right' }}>LANDING</label>
               <div className="chip-group">
                 {LANDINGS.map(l => (
                   <div key={l} className={`chip ${shotDraft.landing === l ? 'active' : ''}`} onClick={() => setShotDraft({...shotDraft, landing: l})}>
@@ -488,7 +488,7 @@ export default function RecordRound() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">DISTANCE</label>
+              <label className="form-label" style={{ textAlign: 'right' }}>DISTANCE</label>
               <div className="chip-group">
                 {DIST_CTRL.map(d => (
                   <div key={d} className={`chip ${shotDraft.distanceCtrl === d ? 'active' : ''}`} onClick={() => setShotDraft({...shotDraft, distanceCtrl: d})}>
@@ -509,7 +509,7 @@ export default function RecordRound() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Penalty</label>
+              <label className="form-label" style={{ textAlign: 'right' }}>Penalty</label>
               <div className="chip-group">
                 {PENALTIES.map(p => (
                   <div key={p} className={`chip ${shotDraft.penalty === p ? 'active' : ''}`} onClick={() => setShotDraft({...shotDraft, penalty: p})}>
@@ -520,11 +520,11 @@ export default function RecordRound() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Memo</label>
+              <label className="form-label" style={{ textAlign: 'right' }}>Memo</label>
               <input 
                 type="text"
                 className="form-input" 
-                style={{ padding: '0.3rem', fontSize: '0.8rem' }}
+                style={{ padding: '0.3rem', fontSize: '0.8rem', textAlign: 'right' }}
                 value={shotDraft.memo} 
                 onChange={e => setShotDraft({...shotDraft, memo: e.target.value})}
                 placeholder="간단한 메모"
