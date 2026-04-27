@@ -78,10 +78,7 @@ body {
   height: 100vh;
   height: 100dvh;
   overflow-y: auto;
-  background: rgba(11, 15, 25, 0.3);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-left: 1px solid var(--glass-border);
+  background: transparent;
   padding: 1.5rem 0.75rem;
   display: flex;
   flex-direction: column;
