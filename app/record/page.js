@@ -347,6 +347,16 @@ export default function RecordRound() {
 
   return (
     <div className="record-container">
+      <div className="hole-yardage-container">
+        <img 
+          key={currentHole.hole}
+          src={`/${currentHole.hole}h.jpg`} 
+          alt={`Hole ${currentHole.hole} Yardage`} 
+          className="hole-yardage-img"
+          onError={(e) => e.target.style.display = 'none'} // Hide if image not found
+        />
+      </div>
+
       <div className="round-info-panel">
         <div className="glass-panel" style={{ padding: '0.75rem', marginBottom: '0', borderRadius: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
