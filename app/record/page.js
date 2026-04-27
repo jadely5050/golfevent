@@ -119,18 +119,25 @@ export default function RecordRound() {
 
   useEffect(() => {
     if (editId) {
-      const saved = localStorage.getItem('golf-rounds');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        const roundToEdit = parsed.find(r => r.id === editId);
-        if (roundToEdit) {
-          setCourse(roundToEdit.course);
-          setDate(roundToEdit.date);
-          if (roundToEdit.holes) setHoles(roundToEdit.holes);
-          if (roundToEdit.lastHoleIdx !== undefined) setCurrentHoleIdx(roundToEdit.lastHoleIdx);
-          setStep('play'); // Skip setup for existing rounds
+      const fetchRoundToEdit = async () => {
+        try {
+          const res = await fetch(`/api/rounds`);
+          const rounds = await res.json();
+          if (Array.isArray(rounds)) {
+            const roundToEdit = rounds.find(r => r.id === editId);
+            if (roundToEdit) {
+              setCourse(roundToEdit.course);
+              setDate(roundToEdit.date);
+              if (roundToEdit.holes) setHoles(roundToEdit.holes);
+              if (roundToEdit.lastHoleIdx !== undefined) setCurrentHoleIdx(roundToEdit.lastHoleIdx);
+              setStep('play');
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching round to edit:', err);
         }
-      }
+      };
+      fetchRoundToEdit();
     }
   }, [editId]);
 
@@ -155,11 +162,7 @@ export default function RecordRound() {
   };
 
   const handleStart = () => {
-    if (!course) return alert('골프장 이름을 입력해주세요.');
-    setStep('play');
-  };
-
-  const saveCurrentRound = () => {
+    if (!course) return alert('골프장 이름을 입력�  const saveCurrentRound = async () => {
     const totalScore = holes.reduce((sum, h) => sum + computeScore(h.shots || [], h.par), 0);
     const totalPar = holes.reduce((sum, h) => sum + h.par, 0);
     const totalPutts = holes.reduce((sum, h) => sum + computePutts(h.shots || []), 0);
@@ -181,17 +184,17 @@ export default function RecordRound() {
       holes: finalHoles
     };
     
-    const saved = localStorage.getItem('golf-rounds');
-    let parsed = saved ? JSON.parse(saved) : [];
-    
-    const existingIdx = parsed.findIndex(r => r.id === currentRoundId);
-    if (existingIdx >= 0) {
-      parsed[existingIdx] = roundData;
-    } else {
-      parsed = [roundData, ...parsed];
+    try {
+      await fetch('/api/rounds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(roundData)
+      });
+    } catch (err) {
+      console.error('Save failed:', err);
     }
-    
-    localStorage.setItem('golf-rounds', JSON.stringify(parsed));
+  };
+'golf-rounds', JSON.stringify(parsed));
   };
 
   useEffect(() => {
@@ -333,15 +336,14 @@ export default function RecordRound() {
     setShowParSettingsModal(false);
   };
 
-  const deleteRound = () => {
+  const deleteRound = async () => {
     if (window.confirm('정말 이 라운드를 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.')) {
-      const saved = localStorage.getItem('golf-rounds');
-      if (saved) {
-        let parsed = JSON.parse(saved);
-        parsed = parsed.filter(r => r.id !== currentRoundId);
-        localStorage.setItem('golf-rounds', JSON.stringify(parsed));
+      try {
+        await fetch(`/api/rounds/${currentRoundId}`, { method: 'DELETE' });
+        router.push('/');
+      } catch (err) {
+        console.error('Delete failed:', err);
       }
-      router.push('/');
     }
   };
 
