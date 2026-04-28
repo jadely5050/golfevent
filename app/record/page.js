@@ -338,12 +338,23 @@ export default function RecordRound() {
   };
 
   const deleteRound = async () => {
-    if (window.confirm('정말 이 라운드를 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.')) {
+    if (window.confirm('이 라운드를 삭제하시겠습니까? 데이터는 복구할 수 없습니다.')) {
       try {
+        // server delete
         await fetch(`/api/rounds/${currentRoundId}`, { method: 'DELETE' });
+
+        // localstorage delete
+        const saved = localStorage.getItem('golf-rounds');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const filtered = parsed.filter(r => r.id !== currentRoundId);
+          localStorage.setItem('golf-rounds', JSON.stringify(filtered));
+        }
+
         router.push('/');
       } catch (err) {
         console.error('Delete failed:', err);
+        alert('삭제 중 오류가 발생했습니다.');
       }
     }
   };
