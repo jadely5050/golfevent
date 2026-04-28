@@ -195,16 +195,7 @@ export default function RecordRound() {
     const filtered = parsed.filter(r => r.id !== currentRoundId);
     localStorage.setItem('golf-rounds', JSON.stringify([...filtered, roundData]));
 
-    // Save to Neon DB
-    try {
-      await fetch('/api/rounds', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(roundData)
-      });
-    } catch (err) {
-      console.error('Save failed:', err);
-    }
+
   };
 
   useEffect(() => {

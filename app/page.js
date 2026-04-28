@@ -50,6 +50,28 @@ export default function Dashboard() {
     alert(`${round.course} 기록을 가져왔습니다.`);
   };
 
+  const uploadRound = async (e, round) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm('서버로 업로드할까요?')) {
+      try {
+        const res = await fetch('/api/rounds', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(round)
+        });
+        if (res.ok) {
+          alert('서버로 업로드되었습니다.');
+        } else {
+          alert('업로드에 실패했습니다.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('네트워크 오류가 발생했습니다.');
+      }
+    }
+  };
+
   const avgScore = recentRounds.length ? Math.round(recentRounds.reduce((a, b) => a + b.score, 0) / recentRounds.length) : '-';
   const avgPutts = recentRounds.length ? Math.round(recentRounds.reduce((a, b) => a + b.putts, 0) / recentRounds.length) : '-';
 
@@ -85,16 +107,25 @@ export default function Dashboard() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {recentRounds.map((round) => (
           <Link key={round.id} href={`/record?id=${round.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, cursor: 'pointer' }}>
-              <div>
+            <div className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, cursor: 'pointer', paddingRight: '0.5rem' }}>
+              <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>{round.date}</div>
                 <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>{round.course}</div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: round.score <= round.par ? 'var(--accent-neon)' : 'white' }}>
-                   {round.score}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: round.score <= round.par ? 'var(--accent-neon)' : 'white' }}>
+                    {round.score}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{round.putts} 퍼팅</div>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{round.putts} 퍼팅</div>
+                <button 
+                  onClick={(e) => uploadRound(e, round)}
+                  style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title="서버로 업로드"
+                >
+                  ☁️
+                </button>
               </div>
             </div>
           </Link>
