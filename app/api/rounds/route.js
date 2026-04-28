@@ -13,9 +13,15 @@ export async function GET() {
 export async function POST(request) {
   try {
     const body = await request.json();
+    console.log('API Request Body:', JSON.stringify(body, null, 2)); // 데이터 확인용 로그
+    
     const { id, date, course, score, par, putts, holes, images } = body;
 
-    // Initialize table if it doesn't exist (Add images_data column)
+    if (!id) {
+      return NextResponse.json({ error: 'Missing round ID' }, { status: 400 });
+    }
+
+    // 1. 테이블 및 컬럼 초기화 (더 확실한 방식)
     await sql`
       CREATE TABLE IF NOT EXISTS golf_rounds (
         id TEXT PRIMARY KEY,
@@ -30,14 +36,20 @@ export async function POST(request) {
       );
     `;
 
-    // Ensure images_data column exists (Migration for existing tables)
+    // 2. 컬럼이 없을 경우를 대비한 명시적 추가
     try {
       await sql`ALTER TABLE golf_rounds ADD COLUMN IF NOT EXISTS images_data JSONB;`;
-    } catch (e) {
-      // Column might already exist or table is fresh
+      console.log('Checked/Added images_data column');
+    } catch (columnError) {
+      console.log('images_data column already exists or table issue:', columnError.message);
     }
 
-    // Insert or Update round
+    // 3. Insert or Update 실행
+    const holesJson = JSON.stringify(holes || []);
+    const imagesJson = JSON.stringify(images || []);
+
+    console.log('Saving imagesJson:', imagesJson);
+
     await sql`
       INSERT INTO golf_rounds (id, date, course, score, par, putts, holes_data, images_data)
       VALUES (
@@ -47,8 +59,8 @@ export async function POST(request) {
         ${score}, 
         ${par}, 
         ${putts}, 
-        ${JSON.stringify(holes)}, 
-        ${JSON.stringify(images || [])}
+        ${holesJson}, 
+        ${imagesJson}
       )
       ON CONFLICT (id) DO UPDATE SET
         date = EXCLUDED.date,
@@ -60,9 +72,13 @@ export async function POST(request) {
         images_data = EXCLUDED.images_data;
     `;
 
+    console.log('Successfully saved to Neon DB');
     return NextResponse.json({ success: true, id });
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('CRITICAL API ERROR:', error); // 상세 에러 로그
+    return NextResponse.json({ 
+      error: error.message,
+      stack: error.stack 
+    }, { status: 500 });
   }
 }
