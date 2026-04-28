@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import exifr from 'exifr';
 
 const CLUBS = ['W1','W4','W7','U3','U4','I5','I6','I7','I8','I9','Pi','50','54','58','Pt'];
 const SHOTS = ['↑','↱','↰','↷','↶','T','D'];
@@ -77,6 +78,8 @@ export default function RecordRound() {
   const editId = searchParams.get('id');
   
   const [step, setStep] = useState('setup'); // 'setup' | 'play' | 'review'
+  const fileInputRef = useRef(null);
+  const dbRef = useRef(null);
   
   // Round Info
   const [course, setCourse] = useState('');
@@ -116,6 +119,21 @@ export default function RecordRound() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Initialize IndexedDB
+  useEffect(() => {
+    const request = indexedDB.open('golf-images', 1);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('images')) {
+        db.createObjectStore('images', { keyPath: 'id' });
+      }
+    };
+    request.onsuccess = (e) => {
+      dbRef.current = e.target.result;
+    };
+    request.onerror = (e) => console.error('IndexedDB Error:', e);
+  }, []);
 
   useEffect(() => {
     if (editId) {
@@ -162,7 +180,7 @@ export default function RecordRound() {
   };
 
   const handleStart = () => {
-    if (!course) return alert('\xec\xbc\x94\xed\x94\x84\xec\x9e\xa5 \xec\x9d\xb4\xeb\xa6\x84\xec\x9d\x84 \xec\x9d\xb8\xeb\xa0\xa5\xed\x95\xb4\xec\xbc\xb8\xec\x9a\x94.');
+    if (!course) return alert('골프장 이름을 입력해주세요.');
     setStep('play');
   };
 
@@ -194,8 +212,6 @@ export default function RecordRound() {
     if (!Array.isArray(parsed)) parsed = [];
     const filtered = parsed.filter(r => r.id !== currentRoundId);
     localStorage.setItem('golf-rounds', JSON.stringify([...filtered, roundData]));
-
-
   };
 
   useEffect(() => {
@@ -269,6 +285,56 @@ export default function RecordRound() {
     }
   };
 
+  const saveToIndexedDB = (file, latitude, longitude, hole) => {
+    if (!dbRef.current) return console.error('DB not initialized');
+
+    const transaction = dbRef.current.transaction(['images'], 'readwrite');
+    const objectStore = transaction.objectStore('images');
+
+    const timestamp = new Date().toISOString();
+    const formattedTime = new Date().toLocaleString('ko-KR');
+    const fileWrapper = {
+      id: timestamp + Math.random(),
+      hole: hole,
+      file: file,
+      addedAt: timestamp,
+      latitude: latitude,
+      longitude: longitude,
+      roundId: currentRoundId
+    };
+
+    const request = objectStore.add(fileWrapper);
+    request.onsuccess = () => {
+      alert(`사진이 기기에 저장되었습니다.\n📍 위치: ${latitude || '정보 없음'}, ${longitude || '정보 없음'}\n⏰ 시간: ${formattedTime}`);
+    };
+    request.onerror = (e) => console.error('Save failed:', e);
+  };
+
+  const handleCameraChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const gps = await exifr.gps(file);
+      if (gps && gps.latitude && gps.longitude) {
+        saveToIndexedDB(file, gps.latitude, gps.longitude, currentHole.hole);
+      } else if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => saveToIndexedDB(file, pos.coords.latitude, pos.coords.longitude, currentHole.hole),
+          (err) => {
+            console.warn('Geolocation error:', err);
+            saveToIndexedDB(file, null, null, currentHole.hole);
+          }
+        );
+      } else {
+        saveToIndexedDB(file, null, null, currentHole.hole);
+      }
+    } catch (err) {
+      console.error('EXIF Error:', err);
+      saveToIndexedDB(file, null, null, currentHole.hole);
+    }
+  };
+
   if (step === 'setup') {
     return (
       <div className="record-container">
@@ -313,7 +379,6 @@ export default function RecordRound() {
     );
   }
 
-  // Calculate totals dynamically for UI
   const totalRoundScore = holes.reduce((sum, h) => sum + computeScore(h.shots || [], h.par), 0);
   const totalRoundPar = holes.reduce((sum, h) => sum + h.par, 0);
   const currentHoleScore = computeScore(currentShots, currentHole.par);
@@ -340,17 +405,13 @@ export default function RecordRound() {
   const deleteRound = async () => {
     if (window.confirm('이 라운드를 삭제하시겠습니까? 데이터는 복구할 수 없습니다.')) {
       try {
-        // server delete
         await fetch(`/api/rounds/${currentRoundId}`, { method: 'DELETE' });
-
-        // localstorage delete
         const saved = localStorage.getItem('golf-rounds');
         if (saved) {
           const parsed = JSON.parse(saved);
           const filtered = parsed.filter(r => r.id !== currentRoundId);
           localStorage.setItem('golf-rounds', JSON.stringify(filtered));
         }
-
         router.push('/');
       } catch (err) {
         console.error('Delete failed:', err);
@@ -367,7 +428,7 @@ export default function RecordRound() {
           src={`/${currentHole.hole}h.jpg`} 
           alt={`Hole ${currentHole.hole} Yardage`} 
           className="hole-yardage-img"
-          onError={(e) => e.target.style.display = 'none'} // Hide if image not found
+          onError={(e) => e.target.style.display = 'none'} 
         />
       </div>
 
@@ -385,7 +446,6 @@ export default function RecordRound() {
 
       <div className="record-side-panel">
         <div style={{ animation: 'fadeIn 0.3s ease-out', paddingBottom: '2rem' }}>
-
           <div className="glass-panel" style={{ padding: '0.75rem 1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
               <h2 
@@ -419,7 +479,6 @@ export default function RecordRound() {
             </div>
           </div>
 
-          {/* SHOT LIST SECTION */}
           <div className="glass-panel" style={{ padding: '0.75rem' }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.3rem', marginTop: '0.15rem' }}>
               <button className="btn btn-primary" style={{ width: 'auto', padding: '0.6rem 1.2rem', fontSize: '1.2rem' }} onClick={openAddShotModal}>
@@ -455,11 +514,26 @@ export default function RecordRound() {
               </div>
             )}
           </div>
-
         </div>
       </div>
 
       <div className="fixed-nav-buttons">
+        <input 
+          type="file" 
+          accept="image/*" 
+          capture="environment" 
+          ref={fileInputRef} 
+          style={{ display: 'none' }} 
+          onChange={handleCameraChange}
+        />
+        <button 
+          className="btn btn-secondary" 
+          style={{ padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: 'var(--accent-neon)', color: 'black', fontWeight: 'bold' }} 
+          onClick={() => fileInputRef.current?.click()}
+        >
+          CAM
+        </button>
+
         {currentHoleIdx > 0 && (
           <button className="btn btn-secondary" style={{ padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i - 1)}>
             &lt;&lt;
@@ -473,7 +547,6 @@ export default function RecordRound() {
         )}
       </div>
 
-      {/* SHOT MODAL */}
       {showShotModal && (
         <div className="modal-overlay" onClick={() => setShowShotModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -568,7 +641,6 @@ export default function RecordRound() {
         </div>
       )}
 
-      {/* PAR SETTINGS MODAL */}
       {showParSettingsModal && (
         <div className="modal-overlay" onClick={() => setShowParSettingsModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -619,7 +691,6 @@ export default function RecordRound() {
                   </select>
                 ))}
               </div>
-
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '4px', textAlign: 'center', marginTop: '1.5rem', marginBottom: '4px' }}>
                 {parDraft.slice(9, 18).map((_, i) => <div key={i+9} style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>{i+10}</div>)}
               </div>
@@ -666,7 +737,6 @@ export default function RecordRound() {
         </div>
       )}
 
-      {/* HOLE SELECT MODAL */}
       {showHoleSelectModal && (
         <div className="modal-overlay" onClick={() => setShowHoleSelectModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -703,7 +773,6 @@ export default function RecordRound() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
