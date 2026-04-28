@@ -292,6 +292,7 @@ export default function RecordRound() {
     const objectStore = transaction.objectStore('images');
 
     const timestamp = new Date().toISOString();
+    const formattedTime = new Date().toLocaleString('ko-KR');
     const fileWrapper = {
       id: timestamp + Math.random(),
       hole: hole,
@@ -303,7 +304,9 @@ export default function RecordRound() {
     };
 
     const request = objectStore.add(fileWrapper);
-    request.onsuccess = () => alert('사진이 기기에 저장되었습니다.');
+    request.onsuccess = () => {
+      alert(`사진이 기기에 저장되었습니다.\n📍 위치: ${latitude || '정보 없음'}, ${longitude || '정보 없음'}\n⏰ 시간: ${formattedTime}`);
+    };
     request.onerror = (e) => console.error('Save failed:', e);
   };
 
