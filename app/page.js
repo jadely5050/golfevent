@@ -53,21 +53,74 @@ export default function Dashboard() {
   const uploadRound = async (e, round) => {
     e.preventDefault();
     e.stopPropagation();
-    if (window.confirm('서버로 업로드할까요?')) {
+    if (window.confirm('사진을 포함하여 서버로 업로드할까요?')) {
+      setIsLoading(true);
       try {
+        // 1. IndexedDB에서 사진 가져오기
+        const images = await new Promise((resolve) => {
+          const request = indexedDB.open('golf-images', 1);
+          request.onsuccess = (e) => {
+            const db = e.target.result;
+            const transaction = db.transaction(['images'], 'readonly');
+            const store = transaction.objectStore('images');
+            const getAllRequest = store.getAll();
+            getAllRequest.onsuccess = () => {
+              const allImages = getAllRequest.result;
+              // 해당 라운드 ID와 일치하는 사진만 필터링
+              resolve(allImages.filter(img => img.roundId === round.id));
+            };
+          };
+          request.onerror = () => resolve([]);
+        });
+
+        // 2. 사진들을 R2로 업로드하고 URL 받기
+        const uploadedImages = [];
+        for (const img of images) {
+          const formData = new FormData();
+          formData.append('file', img.file);
+          formData.append('fileName', `round_${round.id}_hole_${img.hole}.jpg`);
+
+          const uploadRes = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (uploadRes.ok) {
+            const { url } = await uploadRes.json();
+            uploadedImages.push({
+              id: img.id,
+              hole: img.hole,
+              latitude: img.latitude,
+              longitude: img.longitude,
+              addedAt: img.addedAt,
+              url: url
+            });
+          }
+        }
+
+        // 3. 사진 정보가 포함된 라운드 데이터 구성
+        const finalRoundData = {
+          ...round,
+          images: uploadedImages
+        };
+
+        // 4. Neon DB로 최종 업로드
         const res = await fetch('/api/rounds', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(round)
+          body: JSON.stringify(finalRoundData)
         });
+
         if (res.ok) {
-          alert('서버로 업로드되었습니다.');
+          alert(`서버로 업로드되었습니다. (사진 ${uploadedImages.length}장 포함)`);
         } else {
           alert('업로드에 실패했습니다.');
         }
       } catch (err) {
         console.error(err);
-        alert('네트워크 오류가 발생했습니다.');
+        alert('업로드 중 오류가 발생했습니다.');
+      } finally {
+        setIsLoading(false);
       }
     }
   };
