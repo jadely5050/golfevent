@@ -77,7 +77,7 @@ export default function RecordRound() {
   const searchParams = useSearchParams();
   const editId = searchParams.get('id');
   
-  const [step, setStep] = useState('setup'); // 'setup' | 'play' | 'review'
+  const [step, setStep] = useState(editId ? 'loading' : 'setup'); // 'setup' | 'play' | 'review' | 'loading'
   const fileInputRef = useRef(null);
   const dbRef = useRef(null);
   
@@ -139,6 +139,22 @@ export default function RecordRound() {
     if (editId) {
       const fetchRoundToEdit = async () => {
         try {
+          // 로컬 데이터 먼저 확인
+          const saved = localStorage.getItem('golf-rounds');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            const localRound = parsed.find(r => r.id === editId);
+            if (localRound) {
+              setCourse(localRound.course);
+              if (localRound.date) setDate(new Date(localRound.date).toISOString().split("T")[0]);
+              if (localRound.holes) setHoles(localRound.holes);
+              if (localRound.lastHoleIdx !== undefined) setCurrentHoleIdx(localRound.lastHoleIdx);
+              setStep('play');
+              return;
+            }
+          }
+
+          // 로컬에 없으면 서버 데이터 확인
           const res = await fetch(`/api/rounds`);
           const rounds = await res.json();
           if (Array.isArray(rounds)) {
@@ -149,10 +165,13 @@ export default function RecordRound() {
               if (roundToEdit.holes) setHoles(roundToEdit.holes);
               if (roundToEdit.lastHoleIdx !== undefined) setCurrentHoleIdx(roundToEdit.lastHoleIdx);
               setStep('play');
+            } else {
+              setStep('setup');
             }
           }
         } catch (err) {
           console.error('Error fetching round to edit:', err);
+          setStep('setup');
         }
       };
       fetchRoundToEdit();
@@ -334,6 +353,14 @@ export default function RecordRound() {
       saveToIndexedDB(file, null, null, currentHole.hole);
     }
   };
+
+  if (step === 'loading') {
+    return (
+      <div className="record-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ color: 'var(--accent-neon)', fontSize: '1.2rem' }}>라운드 데이터를 불러오는 중...</div>
+      </div>
+    );
+  }
 
   if (step === 'setup') {
     return (
