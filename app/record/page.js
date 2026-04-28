@@ -365,13 +365,21 @@ export default function RecordRound() {
 
   if (step === 'loading') {
     return (
-      <div className="record-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <div style={{ color: 'var(--accent-neon)', fontSize: '1.2rem' }}>라운드 데이터를 불러오는 중...</div>
+      <div className="record-container" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '1rem' }}>
+        <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center' }}>
+          <div style={{ color: 'var(--accent-neon)', fontSize: '1.2rem', marginBottom: '1rem' }}>라운드 데이터를 불러오는 중...</div>
+          <div className="loader"></div>
+        </div>
+        <style dangerouslySetInnerHTML={{__html: `
+          .loader { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--accent-neon); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        `}} />
       </div>
     );
   }
 
-  if (step === 'setup') {
+  // 이중 보안: step이 setup이더라도 URL에 id가 있으면 설정창을 보여주지 않음
+  if (step === 'setup' && !editId) {
     return (
       <div className="record-container">
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', padding: '1rem' }}>
