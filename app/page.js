@@ -5,29 +5,86 @@ import { useEffect, useState } from 'react';
 
 export default function Dashboard() {
   const [recentRounds, setRecentRounds] = useState([]);
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [serverRounds, setServerRounds] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
+  const loadLocalRounds = () => {
     const saved = localStorage.getItem('golf-rounds');
     if (saved) {
       setRecentRounds(JSON.parse(saved));
     } else {
-      // Mock data for initial WOW factor
       setRecentRounds([
         { id: '1', date: '2026.04.20', course: '오거스타 내셔널', score: 72, par: 72, putts: 28 },
         { id: '2', date: '2026.04.15', course: '페블비치', score: 75, par: 72, putts: 31 }
       ]);
     }
+  };
+
+  useEffect(() => {
+    loadLocalRounds();
   }, []);
+
+  const fetchServerRounds = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/rounds');
+      const data = await res.json();
+      setServerRounds(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      alert('데이터를 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const importRound = (round) => {
+    const saved = localStorage.getItem('golf-rounds');
+    let parsed = saved ? JSON.parse(saved) : [];
+    if (!Array.isArray(parsed)) parsed = [];
+    const filtered = parsed.filter(r => r.id !== round.id);
+    const updated = [round, ...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
+    localStorage.setItem('golf-rounds', JSON.stringify(updated));
+    setRecentRounds(updated);
+    alert(`${round.course} 기록을 가져왔습니다.`);
+  };
+
+  const uploadRound = async (e, round) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm('서버로 업로드할까요?')) {
+      try {
+        const res = await fetch('/api/rounds', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(round)
+        });
+        if (res.ok) {
+          alert('서버로 업로드되었습니다.');
+        } else {
+          alert('업로드에 실패했습니다.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('네트워크 오류가 발생했습니다.');
+      }
+    }
+  };
 
   const avgScore = recentRounds.length ? Math.round(recentRounds.reduce((a, b) => a + b.score, 0) / recentRounds.length) : '-';
   const avgPutts = recentRounds.length ? Math.round(recentRounds.reduce((a, b) => a + b.putts, 0) / recentRounds.length) : '-';
 
   return (
-    <div className="container" style={{ animation: 'fadeIn 0.5s ease-out' }}>
+    <div className="container" style={{ animation: 'fadeIn 0.5s ease-out', position: 'relative' }}>
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       `}} />
       
+      <div style={{ position: 'absolute', top: '-10px', right: '10px' }}>
+        <button onClick={() => { setShowSyncModal(true); fetchServerRounds(); }} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>⚙️</button>
+      </div>
+
       <div className="stat-grid">
         <div className="stat-box">
           <div className="stat-value">{avgScore}</div>
@@ -50,16 +107,25 @@ export default function Dashboard() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {recentRounds.map((round) => (
           <Link key={round.id} href={`/record?id=${round.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, cursor: 'pointer' }}>
-              <div>
+            <div className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, cursor: 'pointer', paddingRight: '0.5rem' }}>
+              <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>{round.date}</div>
                 <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>{round.course}</div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: round.score <= round.par ? 'var(--accent-neon)' : 'white' }}>
-                   {round.score}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: round.score <= round.par ? 'var(--accent-neon)' : 'white' }}>
+                    {round.score}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{round.putts} 퍼팅</div>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{round.putts} 퍼팅</div>
+                <button 
+                  onClick={(e) => uploadRound(e, round)}
+                  style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title="서버로 업로드"
+                >
+                  ☁️
+                </button>
               </div>
             </div>
           </Link>
@@ -70,6 +136,37 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {showSyncModal && (
+        <div className="modal-overlay" onClick={() => setShowSyncModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0 }}>클라우드 동기화</h2>
+              <button onClick={() => setShowSyncModal(false)} style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '1.5rem' }}>×</button>
+            </div>
+
+            <button className="btn btn-primary" onClick={fetchServerRounds} disabled={isLoading} style={{ width: '100%', marginBottom: '1.5rem' }}>
+              {isLoading ? '불러오는 중...' : '데이터 새로고침'}
+            </button>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {serverRounds.map((round) => (
+                <div key={round.id} className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, padding: '0.75rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{round.date}</div>
+                    <div style={{ fontWeight: '600' }}>{round.course}</div>
+                    <div style={{ fontSize: '0.8rem' }}>Score: {round.score}</div>
+                  </div>
+                  <button className="btn btn-secondary" onClick={() => importRound(round)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
+                    가져오기
+                  </button>
+                </div>
+              ))}
+              {serverRounds.length === 0 && !isLoading && <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>서버에 저장된 기록이 없습니다.</p>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

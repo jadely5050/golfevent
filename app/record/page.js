@@ -127,7 +127,7 @@ export default function RecordRound() {
             const roundToEdit = rounds.find(r => r.id === editId);
             if (roundToEdit) {
               setCourse(roundToEdit.course);
-              setDate(roundToEdit.date);
+              if (roundToEdit.date) setDate(new Date(roundToEdit.date).toISOString().split("T")[0]);
               if (roundToEdit.holes) setHoles(roundToEdit.holes);
               if (roundToEdit.lastHoleIdx !== undefined) setCurrentHoleIdx(roundToEdit.lastHoleIdx);
               setStep('play');
@@ -162,7 +162,11 @@ export default function RecordRound() {
   };
 
   const handleStart = () => {
-    if (!course) return alert('골프장 이름을 입력�  const saveCurrentRound = async () => {
+    if (!course) return alert('\xec\xbc\x94\xed\x94\x84\xec\x9e\xa5 \xec\x9d\xb4\xeb\xa6\x84\xec\x9d\x84 \xec\x9d\xb8\xeb\xa0\xa5\xed\x95\xb4\xec\xbc\xb8\xec\x9a\x94.');
+    setStep('play');
+  };
+
+  const saveCurrentRound = async () => {
     const totalScore = holes.reduce((sum, h) => sum + computeScore(h.shots || [], h.par), 0);
     const totalPar = holes.reduce((sum, h) => sum + h.par, 0);
     const totalPutts = holes.reduce((sum, h) => sum + computePutts(h.shots || []), 0);
@@ -184,17 +188,14 @@ export default function RecordRound() {
       holes: finalHoles
     };
     
-    try {
-      await fetch('/api/rounds', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(roundData)
-      });
-    } catch (err) {
-      console.error('Save failed:', err);
-    }
-  };
-'golf-rounds', JSON.stringify(parsed));
+    // Save to localStorage
+    const saved = localStorage.getItem('golf-rounds');
+    let parsed = saved ? JSON.parse(saved) : [];
+    if (!Array.isArray(parsed)) parsed = [];
+    const filtered = parsed.filter(r => r.id !== currentRoundId);
+    localStorage.setItem('golf-rounds', JSON.stringify([...filtered, roundData]));
+
+
   };
 
   useEffect(() => {
@@ -337,12 +338,23 @@ export default function RecordRound() {
   };
 
   const deleteRound = async () => {
-    if (window.confirm('정말 이 라운드를 삭제하시겠습니까? 삭제된 데이터는 복구할 수 없습니다.')) {
+    if (window.confirm('이 라운드를 삭제하시겠습니까? 데이터는 복구할 수 없습니다.')) {
       try {
+        // server delete
         await fetch(`/api/rounds/${currentRoundId}`, { method: 'DELETE' });
+
+        // localstorage delete
+        const saved = localStorage.getItem('golf-rounds');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const filtered = parsed.filter(r => r.id !== currentRoundId);
+          localStorage.setItem('golf-rounds', JSON.stringify(filtered));
+        }
+
         router.push('/');
       } catch (err) {
         console.error('Delete failed:', err);
+        alert('삭제 중 오류가 발생했습니다.');
       }
     }
   };
