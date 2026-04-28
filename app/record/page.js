@@ -75,9 +75,18 @@ function SortableShotItem({ id, shot, idx, onEdit, onRemove }) {
 export default function RecordRound() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const editId = searchParams.get('id');
   
-  const [step, setStep] = useState(editId ? 'loading' : 'setup'); // 'setup' | 'play' | 'review' | 'loading'
+  // URL에서 직접 ID를 확인하여 첫 렌더링 시점의 깜빡임 방지
+  const [initialEditId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('id');
+    }
+    return null;
+  });
+
+  const editId = searchParams.get('id') || initialEditId;
+  const [step, setStep] = useState(editId ? 'loading' : 'setup');
   const fileInputRef = useRef(null);
   const dbRef = useRef(null);
   
