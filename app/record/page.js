@@ -127,7 +127,7 @@ export default function RecordRound() {
             const roundToEdit = rounds.find(r => r.id === editId);
             if (roundToEdit) {
               setCourse(roundToEdit.course);
-              setDate(roundToEdit.date);
+              if (roundToEdit.date) setDate(new Date(roundToEdit.date).toISOString().split("T")[0]);
               if (roundToEdit.holes) setHoles(roundToEdit.holes);
               if (roundToEdit.lastHoleIdx !== undefined) setCurrentHoleIdx(roundToEdit.lastHoleIdx);
               setStep('play');
