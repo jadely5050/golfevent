@@ -6,6 +6,8 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, 
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import exifr from 'exifr';
+import { compressImage } from '../utils/imageCompression';
+
 
 const CLUBS = ['W1','W4','W7','U3','U4','I5','I6','I7','I8','I9','Pi','50','54','58','Pt'];
 const SHOTS = ['↑','↱','↰','↷','↶','T','D'];
@@ -343,25 +345,35 @@ export default function RecordRound() {
     if (!file) return;
 
     try {
+      // 1. GPS 정보 추출 (원본 파일에서)
       const gps = await exifr.gps(file);
+      
+      // 2. 이미지 압축
+      const compressedBlob = await compressImage(file, { maxWidth: 1280, quality: 0.7 });
+      
+      // Blob을 File 객체로 변환 (기존 코드와의 호환성을 위해 이름 유지)
+      const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
+
       if (gps && gps.latitude && gps.longitude) {
-        saveToIndexedDB(file, gps.latitude, gps.longitude, currentHole.hole);
+        saveToIndexedDB(compressedFile, gps.latitude, gps.longitude, currentHole.hole);
       } else if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          (pos) => saveToIndexedDB(file, pos.coords.latitude, pos.coords.longitude, currentHole.hole),
+          (pos) => saveToIndexedDB(compressedFile, pos.coords.latitude, pos.coords.longitude, currentHole.hole),
           (err) => {
             console.warn('Geolocation error:', err);
-            saveToIndexedDB(file, null, null, currentHole.hole);
+            saveToIndexedDB(compressedFile, null, null, currentHole.hole);
           }
         );
       } else {
-        saveToIndexedDB(file, null, null, currentHole.hole);
+        saveToIndexedDB(compressedFile, null, null, currentHole.hole);
       }
     } catch (err) {
-      console.error('EXIF Error:', err);
+      console.error('Camera process error:', err);
+      // 실패 시 원본이라도 저장 시도
       saveToIndexedDB(file, null, null, currentHole.hole);
     }
   };
+
 
   if (step === 'loading') {
     return (
