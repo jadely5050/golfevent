@@ -9,12 +9,13 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isDrawing, setIsDrawing] = useState(false);
   const [isErasing, setIsErasing] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
   
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
   const initialPinchDist = useRef(null);
-  const initialPinchCenter = useRef(null);
+  const lastTouchPos = useRef(null);
 
   const [drawings, setDrawings] = useState(drawingData || { paths: [], markers: [] });
 
@@ -30,7 +31,6 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.save();
-    // Origin at Left-Bottom + Pan + Scale
     ctx.translate(transform.x, transform.y);
     ctx.translate(0, H);
     ctx.scale(transform.scale, transform.scale);
@@ -77,57 +77,58 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     if (!containerRef.current) return { x: sx, y: sy };
     const H = containerRef.current.clientHeight;
     const S = transform.scale;
-    const TX = transform.x;
-    const TY = transform.y;
-    
-    // Reverse transform:
-    // sx = TX + x_scaled
-    // sy = TY + y_scaled
-    // x_scaled = x_canvas * S
-    // y_scaled = H - (H - y_canvas) * S
-    
     return {
-      x: (sx - TX) / S,
-      y: H - (H - (sy - TY)) / S
+      x: (sx - transform.x) / S,
+      y: H - (H - (sy - transform.y)) / S
     };
-  };
-
-  // Improved Eraser: check distance to line segments
-  const distanceToSegment = (px, py, x1, y1, x2, y2) => {
-    const l2 = Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2);
-    if (l2 === 0) return Math.hypot(px - x1, py - y1);
-    let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
-    t = Math.max(0, Math.min(1, t));
-    return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
   };
 
   const performErasure = (clientX, clientY) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const pos = screenToCanvas(clientX - rect.left, clientY - rect.top);
-    const threshold = 30 / transform.scale;
+    const threshold = 15 / transform.scale;
 
     setDrawings(prev => {
-      const filteredPaths = prev.paths.filter(p => {
-        // Check points
-        if (p.points.some(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < threshold)) return false;
-        // Check segments
-        for (let i = 0; i < p.points.length - 1; i++) {
-          if (distanceToSegment(pos.x, pos.y, p.points[i].x, p.points[i].y, p.points[i+1].x, p.points[i+1].y) < threshold) {
-            return false;
+      let changed = false;
+      const newPaths = [];
+
+      prev.paths.forEach(path => {
+        let currentSubPath = [];
+        let pathSplit = false;
+
+        path.points.forEach(pt => {
+          if (Math.hypot(pt.x - pos.x, pt.y - pos.y) < threshold) {
+            if (currentSubPath.length > 1) {
+              newPaths.push({ ...path, id: Date.now() + Math.random(), points: currentSubPath });
+            }
+            currentSubPath = [];
+            pathSplit = true;
+            changed = true;
+          } else {
+            currentSubPath.push(pt);
           }
+        });
+
+        if (currentSubPath.length > 1) {
+          newPaths.push({ ...path, id: Date.now() + Math.random(), points: currentSubPath });
+        } else if (pathSplit) {
+          // If the original path was split but the last point was alone, we don't add it.
+        } else if (currentSubPath.length === 1 && path.points.length === 1) {
+          // Keep single points if they were already single (though our logic avoids this usually)
+        } else if (currentSubPath.length === path.points.length) {
+          newPaths.push(path);
         }
-        return true;
       });
-      
-      const filteredMarkers = prev.markers.filter(m => 
-        Math.hypot(m.x - pos.x, m.y - pos.y) > threshold * 1.5
-      );
-      
-      if (filteredPaths.length === prev.paths.length && filteredMarkers.length === prev.markers.length) {
-        return prev;
-      }
-      return { paths: filteredPaths, markers: filteredMarkers };
+
+      const filteredMarkers = prev.markers.filter(m => {
+        const isHit = Math.hypot(m.x - pos.x, m.y - pos.y) < threshold * 2;
+        if (isHit) changed = true;
+        return !isHit;
+      });
+
+      if (!changed) return prev;
+      return { paths: newPaths, markers: filteredMarkers };
     });
   };
 
@@ -147,6 +148,9 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     } else if (activeTool === 'eraser') {
       setIsErasing(true);
       performErasure(clientX, clientY);
+    } else if (activeTool === 'pan' || transform.scale > 1) {
+      setIsPanning(true);
+      lastTouchPos.current = { x: clientX, y: clientY };
     } else if (['OB', 'HZ', 'LEFT', 'RIGHT', 'UP', 'DOWN'].includes(activeTool)) {
       const pos = screenToCanvas(x, y);
       const updated = {
@@ -172,43 +176,34 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
       });
     } else if (isErasing && activeTool === 'eraser') {
       performErasure(clientX, clientY);
+    } else if (isPanning && lastTouchPos.current) {
+      const dx = clientX - lastTouchPos.current.x;
+      const dy = clientY - lastTouchPos.current.y;
+      setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+      lastTouchPos.current = { x: clientX, y: clientY };
     }
   };
 
   const handleEnd = () => {
     if (isDrawing || isErasing) {
-      setIsDrawing(false);
-      setIsErasing(false);
       onSave(drawings);
     }
+    setIsDrawing(false);
+    setIsErasing(false);
+    setIsPanning(false);
+    lastTouchPos.current = null;
     initialPinchDist.current = null;
-    initialPinchCenter.current = null;
-  };
-
-  const handleWheel = (e) => {
-    e.preventDefault();
-    const direction = e.deltaY > 0 ? 0.9 : 1.1;
-    setTransform(prev => {
-      const newScale = Math.min(Math.max(prev.scale * direction, 1), 5);
-      if (newScale === 1) return { x: 0, y: 0, scale: 1 };
-      return { ...prev, scale: newScale };
-    });
   };
 
   const handleTouchStart = (e) => {
     if (e.touches.length === 2) {
       setIsDrawing(false);
       setIsErasing(false);
-      const dist = Math.hypot(
+      setIsPanning(false);
+      initialPinchDist.current = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
-      const center = {
-        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-        y: (e.touches[0].clientY + e.touches[1].clientY) / 2
-      };
-      initialPinchDist.current = dist;
-      initialPinchCenter.current = center;
     } else if (e.touches.length === 1) {
       const touch = e.touches[0];
       handleStart(touch.clientX, touch.clientY);
@@ -227,27 +222,27 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
         y: (e.touches[0].clientY + e.touches[1].clientY) / 2
       };
       
-      const scaleChange = dist / initialPinchDist.current;
-      const dx = center.x - initialPinchCenter.current.x;
-      const dy = center.y - initialPinchCenter.current.y;
-
+      const scaleFactor = dist / initialPinchDist.current;
       setTransform(prev => {
-        const newScale = Math.min(Math.max(prev.scale * scaleChange, 1), 5);
-        if (newScale <= 1.01) {
-          return { x: 0, y: 0, scale: 1 };
-        }
+        const newScale = Math.min(Math.max(prev.scale * scaleFactor, 1), 5);
+        if (newScale <= 1.01) return { x: 0, y: 0, scale: 1 };
+        
+        // Zoom around center point
+        const rect = containerRef.current.getBoundingClientRect();
+        const mouseX = center.x - rect.left;
+        const mouseY = center.y - rect.top;
+        
+        const actualFactor = newScale / prev.scale;
         return {
           scale: newScale,
-          x: prev.x + dx,
-          y: prev.y + dy
+          x: mouseX - (mouseX - prev.x) * actualFactor,
+          y: mouseY - (mouseY - prev.y) * actualFactor
         };
       });
-
       initialPinchDist.current = dist;
-      initialPinchCenter.current = center;
-    } else if (e.touches.length === 1 && (isDrawing || isErasing)) {
-      if (isDrawing || isErasing) e.preventDefault();
+    } else if (e.touches.length === 1 && (isDrawing || isErasing || isPanning)) {
       const touch = e.touches[0];
+      if (isDrawing || isErasing || isPanning) e.preventDefault();
       handleMove(touch.clientX, touch.clientY);
     }
   };
@@ -269,7 +264,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
   };
 
   return (
-    <div className="drawing-board-container" ref={containerRef} onWheel={handleWheel}>
+    <div className="drawing-board-container" ref={containerRef}>
       <div 
         style={{ 
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
@@ -380,3 +375,4 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     </div>
   );
 }
+

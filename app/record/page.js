@@ -580,7 +580,7 @@ export default function RecordRound() {
         </div>
       </div>
 
-      <div className="fixed-nav-buttons">
+      <div className="fixed-nav-buttons" style={{ flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
         <input 
           type="file" 
           accept="image/*" 
@@ -591,24 +591,27 @@ export default function RecordRound() {
         />
         <button 
           className="btn btn-secondary" 
-          style={{ padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: 'var(--accent-neon)', color: 'black', fontWeight: 'bold' }} 
+          style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: 'var(--accent-neon)', color: 'black', fontWeight: 'bold' }} 
           onClick={() => fileInputRef.current?.click()}
         >
           CAM
         </button>
 
-        {currentHoleIdx > 0 && (
-          <button className="btn btn-secondary" style={{ padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i - 1)}>
-            &lt;&lt;
-          </button>
-        )}
-        
-        {currentHoleIdx < 17 && (
-          <button className="btn btn-primary" style={{ padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i + 1)}>
-            &gt;&gt;
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          {currentHoleIdx > 0 && (
+            <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i - 1)}>
+              &lt;&lt;
+            </button>
+          )}
+          
+          {currentHoleIdx < 17 && (
+            <button className="btn btn-primary" style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i + 1)}>
+              &gt;&gt;
+            </button>
+          )}
+        </div>
       </div>
+
 
       {showShotModal && (
         <div className="modal-overlay" onClick={() => setShowShotModal(false)}>
