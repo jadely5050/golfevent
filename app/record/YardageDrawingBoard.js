@@ -95,27 +95,19 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
 
       prev.paths.forEach(path => {
         let currentSubPath = [];
-        let pathSplit = false;
-
         path.points.forEach(pt => {
           if (Math.hypot(pt.x - pos.x, pt.y - pos.y) < threshold) {
             if (currentSubPath.length > 1) {
               newPaths.push({ ...path, id: Date.now() + Math.random(), points: currentSubPath });
             }
             currentSubPath = [];
-            pathSplit = true;
             changed = true;
           } else {
             currentSubPath.push(pt);
           }
         });
-
         if (currentSubPath.length > 1) {
           newPaths.push({ ...path, id: Date.now() + Math.random(), points: currentSubPath });
-        } else if (pathSplit) {
-          // If the original path was split but the last point was alone, we don't add it.
-        } else if (currentSubPath.length === 1 && path.points.length === 1) {
-          // Keep single points if they were already single (though our logic avoids this usually)
         } else if (currentSubPath.length === path.points.length) {
           newPaths.push(path);
         }
@@ -148,7 +140,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     } else if (activeTool === 'eraser') {
       setIsErasing(true);
       performErasure(clientX, clientY);
-    } else if (activeTool === 'pan' || transform.scale > 1) {
+    } else if (transform.scale > 1) {
       setIsPanning(true);
       lastTouchPos.current = { x: clientX, y: clientY };
     } else if (['OB', 'HZ', 'LEFT', 'RIGHT', 'UP', 'DOWN'].includes(activeTool)) {
@@ -217,27 +209,11 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
-      const center = {
-        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-        y: (e.touches[0].clientY + e.touches[1].clientY) / 2
-      };
-      
       const scaleFactor = dist / initialPinchDist.current;
       setTransform(prev => {
         const newScale = Math.min(Math.max(prev.scale * scaleFactor, 1), 5);
         if (newScale <= 1.01) return { x: 0, y: 0, scale: 1 };
-        
-        // Zoom around center point
-        const rect = containerRef.current.getBoundingClientRect();
-        const mouseX = center.x - rect.left;
-        const mouseY = center.y - rect.top;
-        
-        const actualFactor = newScale / prev.scale;
-        return {
-          scale: newScale,
-          x: mouseX - (mouseX - prev.x) * actualFactor,
-          y: mouseY - (mouseY - prev.y) * actualFactor
-        };
+        return { ...prev, scale: newScale }; // Rollback to simple scale from bottom-left
       });
       initialPinchDist.current = dist;
     } else if (e.touches.length === 1 && (isDrawing || isErasing || isPanning)) {
@@ -295,7 +271,11 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
             style={{ 
               left: marker.x, 
               top: marker.y,
-              color: marker.type === 'OB' || marker.type === 'HZ' ? '#334155' : marker.color,
+              backgroundColor: marker.type === 'OB' ? 'red' : marker.type === 'HZ' ? 'blue' : 'transparent',
+              color: (marker.type === 'OB' || marker.type === 'HZ') ? 'white' : marker.color,
+              padding: (marker.type === 'OB' || marker.type === 'HZ') ? '2px 6px' : '0',
+              borderRadius: (marker.type === 'OB' || marker.type === 'HZ') ? '4px' : '0',
+              fontSize: (marker.type === 'OB' || marker.type === 'HZ') ? '0.9rem' : '1.2rem',
               transform: `translate(-50%, -50%) scale(${1/transform.scale})`
             }}
           >
@@ -375,4 +355,3 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     </div>
   );
 }
-
