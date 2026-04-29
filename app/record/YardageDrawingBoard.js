@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 
 export default function YardageDrawingBoard({ holeNumber, drawingData, onSave }) {
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(true);
   const [activeTool, setActiveTool] = useState('pencil');
+
   const [activeColor, setActiveColor] = useState('#000000');
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   
