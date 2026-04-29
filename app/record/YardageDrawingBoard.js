@@ -231,7 +231,11 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
           <button 
             key={t}
             className={`drawing-tool-btn ${activeTool === t ? 'active' : ''}`}
-            onClick={(e) => { e.preventDefault(); setActiveTool(t); }}
+            onPointerDown={(e) => { 
+              e.preventDefault(); 
+              e.stopPropagation();
+              setActiveTool(prev => prev === t ? 'pencil' : t); 
+            }}
           >
             {getMarkerSymbol(t)}
           </button>
@@ -246,7 +250,11 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button 
               className={`drawing-control-btn ${activeTool === 'eraser' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); setActiveTool('eraser'); }}
+              onPointerDown={(e) => { 
+                e.preventDefault(); 
+                e.stopPropagation();
+                setActiveTool(prev => prev === 'eraser' ? 'pencil' : 'eraser'); 
+              }}
             >
               지우개
             </button>
@@ -255,17 +263,22 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
               className="color-picker" 
               value={activeColor} 
               onChange={(e) => setActiveColor(e.target.value)} 
-              onClick={stopPropagation}
+              onPointerDown={stopPropagation}
             />
             <button 
               className={`drawing-control-btn ${activeTool === 'pencil' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); setActiveTool('pencil'); }}
+              onPointerDown={(e) => { 
+                e.preventDefault(); 
+                e.stopPropagation();
+                setActiveTool('pencil'); 
+              }}
             >
               ✎
             </button>
           </div>
         </div>
       </div>
+
     </div>
   );
 }

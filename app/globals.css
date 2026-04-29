@@ -83,7 +83,13 @@ body {
   display: flex;
   flex-direction: column;
   z-index: 5;
+  pointer-events: none;
 }
+
+.record-side-panel > * {
+  pointer-events: auto;
+}
+
 
 .round-info-panel {
   position: absolute;
