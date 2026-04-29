@@ -7,6 +7,8 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { CSS } from '@dnd-kit/utilities';
 import exifr from 'exifr';
 import { compressImage } from '../utils/imageCompression';
+import YardageDrawingBoard from './YardageDrawingBoard';
+
 
 
 const CLUBS = ['W1','W4','W7','U3','U4','I5','I6','I7','I8','I9','Pi','50','54','58','Pt'];
@@ -101,8 +103,10 @@ export default function RecordRound() {
     hole: i + 1,
     par: 4,
     fairway: 'hit', // 'hit' | 'left' | 'right' | 'miss'
-    shots: []
+    shots: [],
+    drawings: { paths: [], markers: [] }
   }));
+
   const [holes, setHoles] = useState(initialHoles);
   const [currentHoleIdx, setCurrentHoleIdx] = useState(0);
 
@@ -479,14 +483,17 @@ export default function RecordRound() {
   return (
     <div className="record-container">
       <div className="hole-yardage-container">
-        <img 
-          key={currentHole.hole}
-          src={`/${currentHole.hole}h.jpg`} 
-          alt={`Hole ${currentHole.hole} Yardage`} 
-          className="hole-yardage-img"
-          onError={(e) => e.target.style.display = 'none'} 
+        <YardageDrawingBoard 
+          holeNumber={currentHole.hole} 
+          drawingData={currentHole.drawings} 
+          onSave={(data) => {
+            const newHoles = [...holes];
+            newHoles[currentHoleIdx] = { ...newHoles[currentHoleIdx], drawings: data };
+            setHoles(newHoles);
+          }}
         />
       </div>
+
 
       <div className="round-info-panel">
         <div className="glass-panel" style={{ padding: '0.75rem', marginBottom: '0', borderRadius: '12px' }}>
