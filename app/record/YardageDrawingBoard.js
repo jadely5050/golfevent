@@ -15,6 +15,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
   const initialPinchDist = useRef(null);
+  const lastPinchCenter = useRef(null);
   const lastTouchPos = useRef(null);
 
   const [drawings, setDrawings] = useState(drawingData || { paths: [], markers: [] });
@@ -92,7 +93,6 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     setDrawings(prev => {
       let changed = false;
       const newPaths = [];
-
       prev.paths.forEach(path => {
         let currentSubPath = [];
         path.points.forEach(pt => {
@@ -112,13 +112,11 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
           newPaths.push(path);
         }
       });
-
       const filteredMarkers = prev.markers.filter(m => {
         const isHit = Math.hypot(m.x - pos.x, m.y - pos.y) < threshold * 2;
         if (isHit) changed = true;
         return !isHit;
       });
-
       if (!changed) return prev;
       return { paths: newPaths, markers: filteredMarkers };
     });
@@ -140,17 +138,14 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     } else if (activeTool === 'eraser') {
       setIsErasing(true);
       performErasure(clientX, clientY);
-    } else if (transform.scale > 1) {
-      setIsPanning(true);
-      lastTouchPos.current = { x: clientX, y: clientY };
-    } else if (['OB', 'HZ', 'LEFT', 'RIGHT', 'UP', 'DOWN'].includes(activeTool)) {
-      const pos = screenToCanvas(x, y);
-      const updated = {
-        ...drawings,
-        markers: [...drawings.markers, { id: Date.now(), x: pos.x, y: pos.y, type: activeTool, color: activeColor }]
-      };
-      setDrawings(updated);
-      onSave(updated);
+    } else {
+      // Default to panning if scale > 1 and no drawing tool is active, 
+      // or just allow panning with scale > 1 regardless?
+      // User said "줌인 한 후 드래그는 한손으로도 가능하도록"
+      if (transform.scale > 1) {
+        setIsPanning(true);
+        lastTouchPos.current = { x: clientX, y: clientY };
+      }
     }
   };
 
@@ -185,6 +180,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     setIsPanning(false);
     lastTouchPos.current = null;
     initialPinchDist.current = null;
+    lastPinchCenter.current = null;
   };
 
   const handleTouchStart = (e) => {
@@ -196,6 +192,10 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
+      lastPinchCenter.current = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+      };
     } else if (e.touches.length === 1) {
       const touch = e.touches[0];
       handleStart(touch.clientX, touch.clientY);
@@ -209,13 +209,27 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
+      const center = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+      };
+      
       const scaleFactor = dist / initialPinchDist.current;
+      const dx = center.x - lastPinchCenter.current.x;
+      const dy = center.y - lastPinchCenter.current.y;
+
       setTransform(prev => {
         const newScale = Math.min(Math.max(prev.scale * scaleFactor, 1), 5);
         if (newScale <= 1.01) return { x: 0, y: 0, scale: 1 };
-        return { ...prev, scale: newScale }; // Rollback to simple scale from bottom-left
+        return { 
+          x: prev.x + dx,
+          y: prev.y + dy,
+          scale: newScale 
+        };
       });
+
       initialPinchDist.current = dist;
+      lastPinchCenter.current = center;
     } else if (e.touches.length === 1 && (isDrawing || isErasing || isPanning)) {
       const touch = e.touches[0];
       if (isDrawing || isErasing || isPanning) e.preventDefault();
