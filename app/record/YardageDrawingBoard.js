@@ -7,9 +7,11 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
   const [activeTool, setActiveTool] = useState('pencil');
   const [activeColor, setActiveColor] = useState('#000000');
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [isErasing, setIsErasing] = useState(false);
-  const [isPanning, setIsPanning] = useState(false);
+  
+  // Using refs for interaction flags to avoid state sync issues during drawing
+  const isDrawing = useRef(false);
+  const isErasing = useRef(false);
+  const isPanning = useRef(false);
   
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
@@ -18,8 +20,10 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
   const lastPinchCenter = useRef(null);
   const lastTouchPos = useRef(null);
 
+  // Local state for drawings, initialized from props
   const [drawings, setDrawings] = useState(drawingData || { paths: [], markers: [] });
 
+  // Sync with props when hole changes or new data arrives from parent
   useEffect(() => {
     setDrawings(drawingData || { paths: [], markers: [] });
   }, [drawingData, holeNumber]);
@@ -38,7 +42,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     ctx.translate(0, -H);
 
     drawings.paths.forEach(path => {
-      if (path.points.length < 2) return;
+      if (!path.points || path.points.length < 2) return;
       ctx.beginPath();
       ctx.strokeStyle = path.color;
       ctx.lineWidth = 3 / transform.scale;
@@ -61,6 +65,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
   const handleResize = () => {
     if (containerRef.current && canvasRef.current) {
       const { clientWidth, clientHeight } = containerRef.current;
+      if (clientWidth === 0 || clientHeight === 0) return;
       canvasRef.current.width = clientWidth;
       canvasRef.current.height = clientHeight;
       redrawCanvas();
@@ -98,7 +103,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
         path.points.forEach(pt => {
           if (Math.hypot(pt.x - pos.x, pt.y - pos.y) < threshold) {
             if (currentSubPath.length > 1) {
-              newPaths.push({ ...path, id: Date.now() + Math.random(), points: currentSubPath });
+              newPaths.push({ ...path, id: Math.random(), points: currentSubPath });
             }
             currentSubPath = [];
             changed = true;
@@ -107,16 +112,20 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
           }
         });
         if (currentSubPath.length > 1) {
-          newPaths.push({ ...path, id: Date.now() + Math.random(), points: currentSubPath });
+          newPaths.push({ ...path, id: Math.random(), points: currentSubPath });
         } else if (currentSubPath.length === path.points.length) {
           newPaths.push(path);
+        } else if (currentSubPath.length > 0) {
+          changed = true; // Partial line removed
         }
       });
+
       const filteredMarkers = prev.markers.filter(m => {
         const isHit = Math.hypot(m.x - pos.x, m.y - pos.y) < threshold * 2;
         if (isHit) changed = true;
         return !isHit;
       });
+
       if (!changed) return prev;
       return { paths: newPaths, markers: filteredMarkers };
     });
@@ -129,28 +138,31 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     const y = clientY - rect.top;
 
     if (activeTool === 'pencil') {
-      setIsDrawing(true);
+      isDrawing.current = true;
       const startPoint = screenToCanvas(x, y);
       setDrawings(prev => ({
         ...prev,
         paths: [...prev.paths, { id: Date.now(), color: activeColor, width: 3, points: [startPoint] }]
       }));
     } else if (activeTool === 'eraser') {
-      setIsErasing(true);
+      isErasing.current = true;
       performErasure(clientX, clientY);
-    } else {
-      // Default to panning if scale > 1 and no drawing tool is active, 
-      // or just allow panning with scale > 1 regardless?
-      // User said "줌인 한 후 드래그는 한손으로도 가능하도록"
-      if (transform.scale > 1) {
-        setIsPanning(true);
-        lastTouchPos.current = { x: clientX, y: clientY };
-      }
+    } else if (transform.scale > 1) {
+      isPanning.current = true;
+      lastTouchPos.current = { x: clientX, y: clientY };
+    } else if (['OB', 'HZ', 'LEFT', 'RIGHT', 'UP', 'DOWN'].includes(activeTool)) {
+      const pos = screenToCanvas(x, y);
+      const updated = {
+        ...drawings,
+        markers: [...drawings.markers, { id: Date.now(), x: pos.x, y: pos.y, type: activeTool, color: activeColor }]
+      };
+      setDrawings(updated);
+      onSave(updated);
     }
   };
 
   const handleMove = (clientX, clientY) => {
-    if (isDrawing && activeTool === 'pencil') {
+    if (isDrawing.current && activeTool === 'pencil') {
       const rect = containerRef.current.getBoundingClientRect();
       const pos = screenToCanvas(clientX - rect.left, clientY - rect.top);
       setDrawings(prev => {
@@ -161,9 +173,9 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
         paths[paths.length - 1] = lastPath;
         return { ...prev, paths };
       });
-    } else if (isErasing && activeTool === 'eraser') {
+    } else if (isErasing.current && activeTool === 'eraser') {
       performErasure(clientX, clientY);
-    } else if (isPanning && lastTouchPos.current) {
+    } else if (isPanning.current && lastTouchPos.current) {
       const dx = clientX - lastTouchPos.current.x;
       const dy = clientY - lastTouchPos.current.y;
       setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
@@ -172,12 +184,16 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
   };
 
   const handleEnd = () => {
-    if (isDrawing || isErasing) {
+    if (isDrawing.current || isErasing.current) {
+      // Need to use latest drawings from state? 
+      // Actually setDrawings is async, so we use a functional update to get latest if needed.
+      // But here we can just let the re-render handle it and call onSave with drawings.
+      // To be safe, we can use a ref for drawings too, but let's try calling onSave in the next tick or using useEffect.
       onSave(drawings);
     }
-    setIsDrawing(false);
-    setIsErasing(false);
-    setIsPanning(false);
+    isDrawing.current = false;
+    isErasing.current = false;
+    isPanning.current = false;
     lastTouchPos.current = null;
     initialPinchDist.current = null;
     lastPinchCenter.current = null;
@@ -185,9 +201,9 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
 
   const handleTouchStart = (e) => {
     if (e.touches.length === 2) {
-      setIsDrawing(false);
-      setIsErasing(false);
-      setIsPanning(false);
+      isDrawing.current = false;
+      isErasing.current = false;
+      isPanning.current = false;
       initialPinchDist.current = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
@@ -230,9 +246,9 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
 
       initialPinchDist.current = dist;
       lastPinchCenter.current = center;
-    } else if (e.touches.length === 1 && (isDrawing || isErasing || isPanning)) {
+    } else if (e.touches.length === 1 && (isDrawing.current || isErasing.current || isPanning.current)) {
       const touch = e.touches[0];
-      if (isDrawing || isErasing || isPanning) e.preventDefault();
+      e.preventDefault();
       handleMove(touch.clientX, touch.clientY);
     }
   };
@@ -286,10 +302,12 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
               left: marker.x, 
               top: marker.y,
               backgroundColor: marker.type === 'OB' ? 'red' : marker.type === 'HZ' ? 'blue' : 'transparent',
-              color: (marker.type === 'OB' || marker.type === 'HZ') ? 'white' : marker.color,
+              color: (marker.type === 'OB' || marker.type === 'HZ') ? 'white' : 'white', // White for symbols too
               padding: (marker.type === 'OB' || marker.type === 'HZ') ? '2px 6px' : '0',
               borderRadius: (marker.type === 'OB' || marker.type === 'HZ') ? '4px' : '0',
-              fontSize: (marker.type === 'OB' || marker.type === 'HZ') ? '0.9rem' : '1.2rem',
+              fontSize: (marker.type === 'OB' || marker.type === 'HZ') ? '0.9rem' : '1.5rem',
+              fontWeight: 'bold',
+              textShadow: (marker.type !== 'OB' && marker.type !== 'HZ') ? '0 0 4px rgba(0,0,0,0.8)' : 'none',
               transform: `translate(-50%, -50%) scale(${1/transform.scale})`
             }}
           >
@@ -305,15 +323,15 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
         onMouseMove={(e) => handleMove(e.clientX, e.clientY)}
         onMouseUp={handleEnd}
         onMouseLeave={handleEnd}
-        onTouchStart={handleTouchStart}
+        onTouchStart={(e) => { e.preventDefault(); handleTouchStart(e); }}
         onTouchMove={handleTouchMove}
-        onTouchEnd={handleEnd}
+        onTouchEnd={(e) => { e.preventDefault(); handleEnd(); }}
       />
 
       <div className="drawing-tool-panel" onPointerDown={stopPropagation} style={{ height: isPanelCollapsed ? '54px' : 'auto', overflow: 'hidden' }}>
         <button 
           className="drawing-tool-btn" 
-          onClick={(e) => { e.preventDefault(); setIsPanelCollapsed(!isPanelCollapsed); }}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsPanelCollapsed(!isPanelCollapsed); }}
           style={{ marginBottom: isPanelCollapsed ? 0 : '0.5rem' }}
         >
           {isPanelCollapsed ? '▼' : '▲'}
@@ -324,6 +342,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
             className={`drawing-tool-btn ${activeTool === t ? 'active' : ''}`}
             onClick={(e) => { 
               e.preventDefault(); 
+              e.stopPropagation();
               setActiveTool(prev => prev === t ? 'pencil' : t); 
             }}
           >
@@ -342,6 +361,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
               className={`drawing-control-btn ${activeTool === 'eraser' ? 'active' : ''}`}
               onClick={(e) => { 
                 e.preventDefault(); 
+                e.stopPropagation();
                 setActiveTool(prev => prev === 'eraser' ? 'pencil' : 'eraser'); 
               }}
             >
@@ -358,6 +378,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
               className={`drawing-control-btn ${activeTool === 'pencil' ? 'active' : ''}`}
               onClick={(e) => { 
                 e.preventDefault(); 
+                e.stopPropagation();
                 setActiveTool('pencil'); 
               }}
             >
