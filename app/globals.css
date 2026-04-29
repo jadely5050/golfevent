@@ -429,7 +429,10 @@ p { margin: 0 0 1rem 0; line-height: 1.5; color: var(--text-secondary); }
   position: absolute;
   top: 0;
   left: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: auto;
+  z-index: 10;
 }
 
 .drawing-tool-panel {
@@ -445,7 +448,9 @@ p { margin: 0 0 1rem 0; line-height: 1.5; color: var(--text-secondary); }
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   transition: transform 0.3s ease;
+  pointer-events: auto;
 }
+
 
 .drawing-tool-panel.collapsed {
   transform: translateY(180px);
