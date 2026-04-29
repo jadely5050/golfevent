@@ -98,10 +98,16 @@ export default function Dashboard() {
           }
         }
 
-        // 3. 사진 정보가 포함된 라운드 데이터 구성
+        // 3. 사진 및 드로잉 정보가 포함된 라운드 데이터 구성
+        const drawings = (round.holes || []).reduce((acc, hole) => {
+          if (hole.drawings) acc[hole.hole] = hole.drawings;
+          return acc;
+        }, {});
+
         const finalRoundData = {
           ...round,
-          images: uploadedImages
+          images: uploadedImages,
+          drawings: drawings
         };
 
         // 4. Neon DB로 최종 업로드
@@ -110,6 +116,7 @@ export default function Dashboard() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(finalRoundData)
         });
+
 
         if (res.ok) {
           alert(`서버로 업로드되었습니다. (사진 ${uploadedImages.length}장 포함)`);
