@@ -7,6 +7,8 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { CSS } from '@dnd-kit/utilities';
 import exifr from 'exifr';
 import { compressImage } from '../utils/imageCompression';
+import YardageDrawingBoard from './YardageDrawingBoard';
+
 
 
 const CLUBS = ['W1','W4','W7','U3','U4','I5','I6','I7','I8','I9','Pi','50','54','58','Pt'];
@@ -101,8 +103,10 @@ export default function RecordRound() {
     hole: i + 1,
     par: 4,
     fairway: 'hit', // 'hit' | 'left' | 'right' | 'miss'
-    shots: []
+    shots: [],
+    drawings: { paths: [], markers: [] }
   }));
+
   const [holes, setHoles] = useState(initialHoles);
   const [currentHoleIdx, setCurrentHoleIdx] = useState(0);
 
@@ -479,14 +483,17 @@ export default function RecordRound() {
   return (
     <div className="record-container">
       <div className="hole-yardage-container">
-        <img 
-          key={currentHole.hole}
-          src={`/${currentHole.hole}h.jpg`} 
-          alt={`Hole ${currentHole.hole} Yardage`} 
-          className="hole-yardage-img"
-          onError={(e) => e.target.style.display = 'none'} 
+        <YardageDrawingBoard 
+          holeNumber={currentHole.hole} 
+          drawingData={currentHole.drawings} 
+          onSave={(data) => {
+            const newHoles = [...holes];
+            newHoles[currentHoleIdx] = { ...newHoles[currentHoleIdx], drawings: data };
+            setHoles(newHoles);
+          }}
         />
       </div>
+
 
       <div className="round-info-panel">
         <div className="glass-panel" style={{ padding: '0.75rem', marginBottom: '0', borderRadius: '12px' }}>
@@ -573,7 +580,7 @@ export default function RecordRound() {
         </div>
       </div>
 
-      <div className="fixed-nav-buttons">
+      <div className="fixed-nav-buttons" style={{ flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
         <input 
           type="file" 
           accept="image/*" 
@@ -584,24 +591,27 @@ export default function RecordRound() {
         />
         <button 
           className="btn btn-secondary" 
-          style={{ padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: 'var(--accent-neon)', color: 'black', fontWeight: 'bold' }} 
+          style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: 'var(--accent-neon)', color: 'black', fontWeight: 'bold' }} 
           onClick={() => fileInputRef.current?.click()}
         >
           CAM
         </button>
 
-        {currentHoleIdx > 0 && (
-          <button className="btn btn-secondary" style={{ padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i - 1)}>
-            &lt;&lt;
-          </button>
-        )}
-        
-        {currentHoleIdx < 17 && (
-          <button className="btn btn-primary" style={{ padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i + 1)}>
-            &gt;&gt;
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          {currentHoleIdx > 0 && (
+            <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i - 1)}>
+              &lt;&lt;
+            </button>
+          )}
+          
+          {currentHoleIdx < 17 && (
+            <button className="btn btn-primary" style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i + 1)}>
+              &gt;&gt;
+            </button>
+          )}
+        </div>
       </div>
+
 
       {showShotModal && (
         <div className="modal-overlay" onClick={() => setShowShotModal(false)}>
