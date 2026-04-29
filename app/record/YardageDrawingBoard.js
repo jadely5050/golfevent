@@ -6,7 +6,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [activeTool, setActiveTool] = useState('pencil');
   const [activeColor, setActiveColor] = useState('#000000');
-  const [transform, setTransform] = useState({ scale: 1 });
+  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isDrawing, setIsDrawing] = useState(false);
   const [isErasing, setIsErasing] = useState(false);
   
@@ -14,6 +14,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
   const initialPinchDist = useRef(null);
+  const initialPinchCenter = useRef(null);
 
   const [drawings, setDrawings] = useState(drawingData || { paths: [], markers: [] });
 
@@ -29,6 +30,8 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.save();
+    // Origin at Left-Bottom + Pan + Scale
+    ctx.translate(transform.x, transform.y);
     ctx.translate(0, H);
     ctx.scale(transform.scale, transform.scale);
     ctx.translate(0, -H);
@@ -74,10 +77,28 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     if (!containerRef.current) return { x: sx, y: sy };
     const H = containerRef.current.clientHeight;
     const S = transform.scale;
+    const TX = transform.x;
+    const TY = transform.y;
+    
+    // Reverse transform:
+    // sx = TX + x_scaled
+    // sy = TY + y_scaled
+    // x_scaled = x_canvas * S
+    // y_scaled = H - (H - y_canvas) * S
+    
     return {
-      x: sx / S,
-      y: H - (H - sy) / S
+      x: (sx - TX) / S,
+      y: H - (H - (sy - TY)) / S
     };
+  };
+
+  // Improved Eraser: check distance to line segments
+  const distanceToSegment = (px, py, x1, y1, x2, y2) => {
+    const l2 = Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2);
+    if (l2 === 0) return Math.hypot(px - x1, py - y1);
+    let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
   };
 
   const performErasure = (clientX, clientY) => {
@@ -87,14 +108,22 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     const threshold = 30 / transform.scale;
 
     setDrawings(prev => {
-      const filteredPaths = prev.paths.filter(p => 
-        !p.points.some(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < threshold)
-      );
+      const filteredPaths = prev.paths.filter(p => {
+        // Check points
+        if (p.points.some(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < threshold)) return false;
+        // Check segments
+        for (let i = 0; i < p.points.length - 1; i++) {
+          if (distanceToSegment(pos.x, pos.y, p.points[i].x, p.points[i].y, p.points[i+1].x, p.points[i+1].y) < threshold) {
+            return false;
+          }
+        }
+        return true;
+      });
+      
       const filteredMarkers = prev.markers.filter(m => 
-        Math.hypot(m.x - pos.x, m.y - pos.y) < threshold * 1.5
+        Math.hypot(m.x - pos.x, m.y - pos.y) > threshold * 1.5
       );
       
-      // If nothing changed, return prev to avoid unnecessary state updates
       if (filteredPaths.length === prev.paths.length && filteredMarkers.length === prev.markers.length) {
         return prev;
       }
@@ -153,17 +182,19 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
       onSave(drawings);
     }
     initialPinchDist.current = null;
+    initialPinchCenter.current = null;
   };
 
   const handleWheel = (e) => {
     e.preventDefault();
     const direction = e.deltaY > 0 ? 0.9 : 1.1;
-    setTransform(prev => ({
-      scale: Math.min(Math.max(prev.scale * direction, 1), 5)
-    }));
+    setTransform(prev => {
+      const newScale = Math.min(Math.max(prev.scale * direction, 1), 5);
+      if (newScale === 1) return { x: 0, y: 0, scale: 1 };
+      return { ...prev, scale: newScale };
+    });
   };
 
-  // Pinch Zoom Logic
   const handleTouchStart = (e) => {
     if (e.touches.length === 2) {
       setIsDrawing(false);
@@ -172,7 +203,12 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
+      const center = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+      };
       initialPinchDist.current = dist;
+      initialPinchCenter.current = center;
     } else if (e.touches.length === 1) {
       const touch = e.touches[0];
       handleStart(touch.clientX, touch.clientY);
@@ -186,13 +222,31 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
-      const direction = dist / initialPinchDist.current;
-      setTransform(prev => ({
-        scale: Math.min(Math.max(prev.scale * direction, 1), 5)
-      }));
+      const center = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+      };
+      
+      const scaleChange = dist / initialPinchDist.current;
+      const dx = center.x - initialPinchCenter.current.x;
+      const dy = center.y - initialPinchCenter.current.y;
+
+      setTransform(prev => {
+        const newScale = Math.min(Math.max(prev.scale * scaleChange, 1), 5);
+        if (newScale <= 1.01) {
+          return { x: 0, y: 0, scale: 1 };
+        }
+        return {
+          scale: newScale,
+          x: prev.x + dx,
+          y: prev.y + dy
+        };
+      });
+
       initialPinchDist.current = dist;
+      initialPinchCenter.current = center;
     } else if (e.touches.length === 1 && (isDrawing || isErasing)) {
-      if (isDrawing) e.preventDefault(); // Prevent scroll while drawing
+      if (isDrawing || isErasing) e.preventDefault();
       const touch = e.touches[0];
       handleMove(touch.clientX, touch.clientY);
     }
@@ -218,7 +272,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     <div className="drawing-board-container" ref={containerRef} onWheel={handleWheel}>
       <div 
         style={{ 
-          transform: `scale(${transform.scale})`,
+          transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
           transformOrigin: 'left bottom',
           position: 'absolute',
           bottom: 0,
@@ -279,7 +333,10 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
           <button 
             key={t}
             className={`drawing-tool-btn ${activeTool === t ? 'active' : ''}`}
-            onClick={(e) => { e.preventDefault(); setActiveTool(prev => prev === t ? 'pencil' : t); }}
+            onClick={(e) => { 
+              e.preventDefault(); 
+              setActiveTool(prev => prev === t ? 'pencil' : t); 
+            }}
           >
             {getMarkerSymbol(t)}
           </button>
@@ -294,7 +351,10 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button 
               className={`drawing-control-btn ${activeTool === 'eraser' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); setActiveTool(prev => prev === 'eraser' ? 'pencil' : 'eraser'); }}
+              onClick={(e) => { 
+                e.preventDefault(); 
+                setActiveTool(prev => prev === 'eraser' ? 'pencil' : 'eraser'); 
+              }}
             >
               지우개
             </button>
@@ -307,7 +367,10 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
             />
             <button 
               className={`drawing-control-btn ${activeTool === 'pencil' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); setActiveTool('pencil'); }}
+              onClick={(e) => { 
+                e.preventDefault(); 
+                setActiveTool('pencil'); 
+              }}
             >
               ✎
             </button>
