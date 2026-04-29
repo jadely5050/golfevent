@@ -1,28 +1,23 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 
 export default function YardageDrawingBoard({ holeNumber, drawingData, onSave }) {
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
-  const [activeTool, setActiveTool] = useState('pencil'); // Default to pencil as requested
+  const [activeTool, setActiveTool] = useState('pencil');
   const [activeColor, setActiveColor] = useState('#000000');
-  const [transform, setTransform] = useState({ scale: 1 }); // Remove x, y for position lock
+  const [transform, setTransform] = useState({ scale: 1 });
   const [isDrawing, setIsDrawing] = useState(false);
   
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
 
-  // Load drawings from props
   const [drawings, setDrawings] = useState(drawingData || { paths: [], markers: [] });
 
   useEffect(() => {
     setDrawings(drawingData || { paths: [], markers: [] });
   }, [drawingData, holeNumber]);
-
-  useEffect(() => {
-    redrawCanvas();
-  }, [drawings, transform, holeNumber]);
 
   const redrawCanvas = () => {
     const canvas = canvasRef.current;
@@ -32,12 +27,10 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.save();
-    // Origin at Left-Bottom
     ctx.translate(0, H);
     ctx.scale(transform.scale, transform.scale);
     ctx.translate(0, -H);
 
-    // Draw paths
     drawings.paths.forEach(path => {
       if (path.points.length < 2) return;
       ctx.beginPath();
@@ -55,55 +48,54 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     ctx.restore();
   };
 
+  useLayoutEffect(() => {
+    redrawCanvas();
+  }, [drawings, transform, holeNumber]);
+
+  const handleResize = () => {
+    if (containerRef.current && canvasRef.current) {
+      const { clientWidth, clientHeight } = containerRef.current;
+      canvasRef.current.width = clientWidth;
+      canvasRef.current.height = clientHeight;
+      redrawCanvas();
+    }
+  };
+
+  useEffect(() => {
+    handleResize();
+    const resizeObserver = new ResizeObserver(handleResize);
+    if (containerRef.current) resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, [holeNumber]);
+
   const screenToCanvas = (sx, sy) => {
     if (!containerRef.current) return { x: sx, y: sy };
     const H = containerRef.current.clientHeight;
     const S = transform.scale;
-    
-    // Reverse transform for Origin (0, H)
-    // x_screen = x_canvas * S
-    // y_screen = H - (H - y_canvas) * S
     return {
       x: sx / S,
       y: H - (H - sy) / S
     };
   };
 
-  const handleMouseDown = (e) => {
-    // If clicking on tool UI, don't start drawing
-    if (e.target.closest('.drawing-tool-panel') || e.target.closest('.drawing-bottom-bar')) {
-      return;
-    }
-
+  const handleStart = (clientX, clientY) => {
+    if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
-    const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
 
     if (activeTool === 'pencil') {
       setIsDrawing(true);
       const startPoint = screenToCanvas(x, y);
-      const newPath = {
-        id: Date.now(),
-        color: activeColor,
-        width: 3,
-        points: [startPoint]
-      };
       setDrawings(prev => ({
         ...prev,
-        paths: [...prev.paths, newPath]
+        paths: [...prev.paths, { id: Date.now(), color: activeColor, width: 3, points: [startPoint] }]
       }));
     } else if (['OB', 'HZ', 'LEFT', 'RIGHT', 'UP', 'DOWN'].includes(activeTool)) {
       const pos = screenToCanvas(x, y);
-      const newMarker = {
-        id: Date.now(),
-        x: pos.x,
-        y: pos.y,
-        type: activeTool,
-        color: activeColor
-      };
       const updated = {
         ...drawings,
-        markers: [...drawings.markers, newMarker]
+        markers: [...drawings.markers, { id: Date.now(), x: pos.x, y: pos.y, type: activeTool, color: activeColor }]
       };
       setDrawings(updated);
       onSave(updated);
@@ -119,25 +111,22 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     }
   };
 
-  const handleMouseMove = (e) => {
+  const handleMove = (clientX, clientY) => {
     if (isDrawing && activeTool === 'pencil') {
       const rect = containerRef.current.getBoundingClientRect();
-      const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
-      const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
-      const pos = screenToCanvas(x, y);
-      
+      const pos = screenToCanvas(clientX - rect.left, clientY - rect.top);
       setDrawings(prev => {
         const paths = [...prev.paths];
         if (paths.length === 0) return prev;
-        const currentPath = { ...paths[paths.length - 1] };
-        currentPath.points = [...currentPath.points, pos];
-        paths[paths.length - 1] = currentPath;
+        const lastPath = { ...paths[paths.length - 1] };
+        lastPath.points = [...lastPath.points, pos];
+        paths[paths.length - 1] = lastPath;
         return { ...prev, paths };
       });
     }
   };
 
-  const handleMouseUp = () => {
+  const handleEnd = () => {
     if (isDrawing) {
       setIsDrawing(false);
       onSave(drawings);
@@ -146,8 +135,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
 
   const handleWheel = (e) => {
     e.preventDefault();
-    const scaleFactor = 1.1;
-    const direction = e.deltaY > 0 ? 1 / scaleFactor : scaleFactor;
+    const direction = e.deltaY > 0 ? 0.9 : 1.1;
     setTransform(prev => ({
       scale: Math.min(Math.max(prev.scale * direction, 1), 5)
     }));
@@ -165,37 +153,8 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     }
   };
 
-  const handleResize = () => {
-    if (containerRef.current && canvasRef.current) {
-      canvasRef.current.width = containerRef.current.clientWidth;
-      canvasRef.current.height = containerRef.current.clientHeight;
-      redrawCanvas();
-    }
-  };
-
-  useEffect(() => {
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [holeNumber]);
-
-  const clearAll = (e) => {
+  const stopPropagation = (e) => {
     e.stopPropagation();
-    if (window.confirm('모든 드로잉을 지우시겠습니까?')) {
-      const empty = { paths: [], markers: [] };
-      setDrawings(empty);
-      onSave(empty);
-    }
-  };
-
-  const togglePanel = (e) => {
-    e.stopPropagation();
-    setIsPanelCollapsed(!isPanelCollapsed);
-  };
-
-  const selectTool = (e, tool) => {
-    e.stopPropagation();
-    setActiveTool(tool);
   };
 
   return (
@@ -231,8 +190,6 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
               left: marker.x, 
               top: marker.y,
               color: marker.type === 'OB' || marker.type === 'HZ' ? '#334155' : marker.color,
-              // Inverse scale for markers to keep them visible but constant size? 
-              // Usually markers should stay readable.
               transform: `translate(-50%, -50%) scale(${1/transform.scale})`
             }}
           >
@@ -244,40 +201,44 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
       <canvas
         ref={canvasRef}
         className="drawing-canvas"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onMouseDown={(e) => handleStart(e.clientX, e.clientY)}
+        onMouseMove={(e) => handleMove(e.clientX, e.clientY)}
+        onMouseUp={handleEnd}
+        onMouseLeave={handleEnd}
         onTouchStart={(e) => {
-          if (e.target === canvasRef.current) {
-            handleMouseDown(e);
-          }
+          const touch = e.touches[0];
+          handleStart(touch.clientX, touch.clientY);
         }}
         onTouchMove={(e) => {
           if (isDrawing) {
             e.preventDefault();
-            handleMouseMove(e);
+            const touch = e.touches[0];
+            handleMove(touch.clientX, touch.clientY);
           }
         }}
-        onTouchEnd={handleMouseUp}
+        onTouchEnd={handleEnd}
       />
 
-      <div className={`drawing-tool-panel ${isPanelCollapsed ? 'collapsed' : ''}`} onPointerDown={e => e.stopPropagation()}>
-        <button className="drawing-tool-btn" onPointerDown={togglePanel}>
-          {isPanelCollapsed ? '▲' : '▼'}
+      <div className="drawing-tool-panel" onPointerDown={stopPropagation} style={{ height: isPanelCollapsed ? '54px' : 'auto', overflow: 'hidden' }}>
+        <button 
+          className="drawing-tool-btn" 
+          onClick={(e) => { e.preventDefault(); setIsPanelCollapsed(!isPanelCollapsed); }}
+          style={{ marginBottom: isPanelCollapsed ? 0 : '0.5rem' }}
+        >
+          {isPanelCollapsed ? '▼' : '▲'}
         </button>
-        {['OB', 'HZ', 'LEFT', 'RIGHT', 'UP', 'DOWN'].map(t => (
+        {!isPanelCollapsed && ['OB', 'HZ', 'LEFT', 'RIGHT', 'UP', 'DOWN'].map(t => (
           <button 
             key={t}
             className={`drawing-tool-btn ${activeTool === t ? 'active' : ''}`}
-            onPointerDown={(e) => selectTool(e, t)}
+            onClick={(e) => { e.preventDefault(); setActiveTool(t); }}
           >
             {getMarkerSymbol(t)}
           </button>
         ))}
       </div>
 
-      <div className="drawing-bottom-bar" onPointerDown={e => e.stopPropagation()}>
+      <div className="drawing-bottom-bar" onPointerDown={stopPropagation}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div className="drawing-stat-badge">
             H: {drawings.markers.filter(m => m.type === 'HZ').length}, O: {drawings.markers.filter(m => m.type === 'OB').length}
@@ -285,7 +246,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button 
               className={`drawing-control-btn ${activeTool === 'eraser' ? 'active' : ''}`}
-              onPointerDown={(e) => selectTool(e, 'eraser')}
+              onClick={(e) => { e.preventDefault(); setActiveTool('eraser'); }}
             >
               지우개
             </button>
@@ -294,15 +255,13 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
               className="color-picker" 
               value={activeColor} 
               onChange={(e) => setActiveColor(e.target.value)} 
+              onClick={stopPropagation}
             />
             <button 
               className={`drawing-control-btn ${activeTool === 'pencil' ? 'active' : ''}`}
-              onPointerDown={(e) => selectTool(e, 'pencil')}
+              onClick={(e) => { e.preventDefault(); setActiveTool('pencil'); }}
             >
               ✎
-            </button>
-            <button className="drawing-control-btn" onPointerDown={clearAll} style={{ color: 'var(--danger)' }}>
-              초기화
             </button>
           </div>
         </div>
