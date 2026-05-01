@@ -568,8 +568,8 @@ export default function RecordRound() {
             </div>
             </div>
             
-            <div style={{ marginTop: '1rem', borderTop: '1px solid var(--glass-border)', paddingTop: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.3rem', marginTop: '0.15rem' }}>
+            <div className="shot-list-container" style={{ marginTop: '0', borderTop: '1px solid var(--glass-border)', paddingTop: '0' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.3rem', marginTop: '0' }}>
               <button className="btn btn-primary" style={{ width: 'auto', padding: '0.6rem 1.2rem', fontSize: '1.2rem' }} onClick={openAddShotModal}>
                 SHOT+
               </button>
