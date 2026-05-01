@@ -344,8 +344,8 @@ export default function YardageDrawingBoard({
         onTouchEnd={(e) => { e.preventDefault(); handleEnd(); }}
       />
 
-      <div className="drawing-marker-bar" onPointerDown={stopPropagation}>
-        <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '0.3rem' }}>
+      <div className="drawing-marker-bar" style={{ pointerEvents: 'none' }}>
+        <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '0.3rem', pointerEvents: 'auto' }} onPointerDown={stopPropagation}>
           <button 
             className="drawing-tool-btn" 
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsPanelCollapsed(!isPanelCollapsed); }}
@@ -370,34 +370,39 @@ export default function YardageDrawingBoard({
         </div>
       </div>
 
-      <div className="drawing-control-bar" onPointerDown={stopPropagation}>
-        <button 
-          className={`drawing-control-btn ${activeTool === 'eraser' ? 'active' : ''}`}
-          onClick={(e) => { 
-            e.preventDefault(); 
-            e.stopPropagation();
-            setActiveTool(prev => prev === 'eraser' ? 'pencil' : 'eraser'); 
-          }}
-        >
-          지우개
-        </button>
-        <input 
-          type="color" 
-          className="color-picker" 
-          value={activeColor} 
-          onChange={(e) => setActiveColor(e.target.value)} 
-          onPointerDown={stopPropagation}
-        />
-        <button 
-          className={`drawing-control-btn ${activeTool === 'pencil' ? 'active' : ''}`}
-          onClick={(e) => { 
-            e.preventDefault(); 
-            e.stopPropagation();
-            setActiveTool('pencil'); 
-          }}
-        >
-          ✎
-        </button>
+      <div className="drawing-control-bar" style={{ pointerEvents: 'none' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', pointerEvents: 'auto' }} onPointerDown={stopPropagation}>
+          <button 
+            className={`drawing-control-btn ${activeTool === 'eraser' ? 'active' : ''}`}
+            style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+            onClick={(e) => { 
+              e.preventDefault(); 
+              e.stopPropagation();
+              setActiveTool(prev => prev === 'eraser' ? 'pencil' : 'eraser'); 
+            }}
+          >
+            지우개
+          </button>
+          <input 
+            type="color" 
+            className="color-picker" 
+            style={{ width: '30px', height: '30px' }}
+            value={activeColor} 
+            onChange={(e) => setActiveColor(e.target.value)} 
+            onPointerDown={stopPropagation}
+          />
+          <button 
+            className={`drawing-control-btn ${activeTool === 'pencil' ? 'active' : ''}`}
+            style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+            onClick={(e) => { 
+              e.preventDefault(); 
+              e.stopPropagation();
+              setActiveTool('pencil'); 
+            }}
+          >
+            ✎
+          </button>
+        </div>
       </div>
     </div>
   );
