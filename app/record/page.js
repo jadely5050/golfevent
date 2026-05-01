@@ -104,7 +104,8 @@ export default function RecordRound() {
     par: 4,
     fairway: 'hit', // 'hit' | 'left' | 'right' | 'miss'
     shots: [],
-    drawings: { paths: [], markers: [] }
+    drawings: { paths: [], markers: [] },
+    greenDrawings: { paths: [], markers: [] }
   }));
 
   const [holes, setHoles] = useState(initialHoles);
@@ -120,6 +121,7 @@ export default function RecordRound() {
   const [courseDraft, setCourseDraft] = useState('');
   const [dateDraft, setDateDraft] = useState('');
   const [showHoleSelectModal, setShowHoleSelectModal] = useState(false);
+  const [showGreenModal, setShowGreenModal] = useState(false);
 
   // DnD Sensors
   const sensors = useSensors(
@@ -149,10 +151,12 @@ export default function RecordRound() {
     };
     request.onerror = (e) => console.error('IndexedDB Error:', e);
 
-    // Preload all 18 yardage images to browser cache
+    // Preload all 18 yardage images and green images to browser cache
     for (let i = 1; i <= 18; i++) {
       const img = new Image();
       img.src = `/${i}h.jpg`;
+      const gImg = new Image();
+      gImg.src = `/g${i}.jpg`;
     }
   }, []);
 
@@ -611,6 +615,29 @@ export default function RecordRound() {
           style={{ display: 'none' }} 
           onChange={handleCameraChange}
         />
+        
+        <div 
+          className="glass-panel" 
+          style={{ 
+            width: '180px', 
+            padding: '0.5rem', 
+            marginBottom: '0', 
+            cursor: 'pointer',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            border: '1px solid var(--accent-neon)'
+          }}
+          onClick={() => setShowGreenModal(true)}
+        >
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>GREEN</div>
+          <img 
+            src={`/g${currentHole.hole}.jpg`} 
+            alt="Green Preview" 
+            style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '8px' }}
+          />
+        </div>
         <button 
           className="btn btn-secondary" 
           style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: 'var(--accent-neon)', color: 'black', fontWeight: 'bold' }} 
@@ -858,6 +885,46 @@ export default function RecordRound() {
               </div>
             </div>
             <button className="btn btn-secondary" style={{ marginTop: '1.5rem', width: '100%' }} onClick={() => setShowHoleSelectModal(false)}>닫기</button>
+          </div>
+        </div>
+      )}
+
+      {showGreenModal && (
+        <div className="modal-overlay" onClick={() => setShowGreenModal(false)}>
+          <div 
+            className="glass-panel" 
+            onClick={e => e.stopPropagation()} 
+            style={{ 
+              position: 'relative',
+              width: '90vw', 
+              maxWidth: '500px', 
+              aspectRatio: '1/1', 
+              padding: 0, 
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              margin: 0
+            }}
+          >
+            <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1000 }}>
+               <button 
+                 onClick={() => setShowGreenModal(false)}
+                 style={{ background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', fontSize: '1.5rem', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+               >
+                 ×
+               </button>
+            </div>
+            <YardageDrawingBoard 
+              holeNumber={currentHole.hole}
+              mode="green"
+              imageUrl={`/g${currentHole.hole}.jpg`}
+              drawingData={currentHole.greenDrawings}
+              onSave={(data) => {
+                const newHoles = [...holes];
+                newHoles[currentHoleIdx] = { ...newHoles[currentHoleIdx], greenDrawings: data };
+                setHoles(newHoles);
+              }}
+            />
           </div>
         </div>
       )}

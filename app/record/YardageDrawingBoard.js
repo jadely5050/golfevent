@@ -2,7 +2,15 @@
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 
-export default function YardageDrawingBoard({ holeNumber, drawingData, onSave, obCount = 0, hazardCount = 0 }) {
+export default function YardageDrawingBoard({ 
+  holeNumber, 
+  drawingData, 
+  onSave, 
+  obCount = 0, 
+  hazardCount = 0,
+  mode = 'yardage',
+  imageUrl = null
+}) {
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(true);
   const [activeTool, setActiveTool] = useState('pencil');
 
@@ -151,7 +159,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave, o
     } else if (transform.scale > 1) {
       isPanning.current = true;
       lastTouchPos.current = { x: clientX, y: clientY };
-    } else if (['OB', 'HZ', 'B', 'IP', 'LEFT', 'RIGHT', 'UP', 'DOWN'].includes(activeTool)) {
+    } else if (['OB', 'HZ', 'B', 'IP', 'LEFT', 'RIGHT', 'UP', 'DOWN', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(activeTool)) {
       const pos = screenToCanvas(x, y);
       const updated = {
         ...drawings,
@@ -260,6 +268,11 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave, o
       case 'HZ': return 'HZ';
       case 'B': return 'B';
       case 'IP': return '❤️';
+      case 'FLAG': return '🚩';
+      case 'P1': return '①';
+      case 'P2': return '②';
+      case 'P3': return '③';
+      case 'P4': return '④';
       case 'LEFT': return '←';
       case 'RIGHT': return '→';
       case 'UP': return '↑';
@@ -290,8 +303,8 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave, o
       >
         <img 
           ref={imageRef}
-          src={`/${holeNumber}h.jpg`} 
-          alt={`Hole ${holeNumber}`} 
+          src={imageUrl || `/${holeNumber}h.jpg`} 
+          alt={mode === 'green' ? `Green ${holeNumber}` : `Hole ${holeNumber}`} 
           style={{ height: '100%', width: 'auto', pointerEvents: 'none', userSelect: 'none' }}
           onLoad={handleResize}
           onError={(e) => e.target.style.display = 'none'}
@@ -300,17 +313,17 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave, o
         {drawings.markers.map(marker => (
           <div 
             key={marker.id}
-            className={['OB', 'HZ', 'B'].includes(marker.type) ? 'marker-item' : 'marker-arrow'}
+            className={['OB', 'HZ', 'B', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type) ? 'marker-item' : 'marker-arrow'}
             style={{ 
               left: marker.x, 
               top: marker.y,
-              backgroundColor: marker.type === 'OB' ? 'red' : marker.type === 'HZ' ? 'blue' : marker.type === 'B' ? '#eab308' : 'transparent',
-              color: marker.type === 'IP' ? '#ff4d4f' : 'white',
-              padding: (['OB', 'HZ', 'B'].includes(marker.type)) ? '2px 6px' : '0',
-              borderRadius: (['OB', 'HZ', 'B'].includes(marker.type)) ? '4px' : '0',
-              fontSize: (['OB', 'HZ', 'B'].includes(marker.type)) ? '0.9rem' : '1.5rem',
+              backgroundColor: marker.type === 'OB' ? 'red' : marker.type === 'HZ' ? 'blue' : marker.type === 'B' ? '#eab308' : (['FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+              color: marker.type === 'IP' ? '#ff4d4f' : (['FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? 'black' : 'white',
+              padding: (['OB', 'HZ', 'B', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '2px 6px' : '0',
+              borderRadius: (['OB', 'HZ', 'B', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '4px' : '0',
+              fontSize: (['OB', 'HZ', 'B', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '0.9rem' : '1.5rem',
               fontWeight: 'bold',
-              textShadow: !(['OB', 'HZ', 'B'].includes(marker.type)) ? '0 0 4px rgba(0,0,0,0.8)' : 'none',
+              textShadow: !(['OB', 'HZ', 'B', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '0 0 4px rgba(0,0,0,0.8)' : 'none',
               transform: `translate(-50%, -50%) scale(${1/transform.scale})`
             }}
           >
@@ -341,7 +354,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave, o
             >
               {isPanelCollapsed ? '▼' : '▲'}
             </button>
-            {!isPanelCollapsed && ['OB', 'HZ', 'B', 'IP', 'LEFT', 'RIGHT', 'UP', 'DOWN'].map(t => (
+            {!isPanelCollapsed && (mode === 'green' ? ['FLAG', 'P1', 'P2', 'P3', 'P4'] : ['OB', 'HZ', 'B', 'IP', 'LEFT', 'RIGHT', 'UP', 'DOWN']).map(t => (
               <button 
                 key={t}
                 className={`drawing-tool-btn ${activeTool === t ? 'active' : ''}`}
