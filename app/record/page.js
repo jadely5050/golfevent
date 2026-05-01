@@ -148,6 +148,12 @@ export default function RecordRound() {
       dbRef.current = e.target.result;
     };
     request.onerror = (e) => console.error('IndexedDB Error:', e);
+
+    // Preload all 18 yardage images to browser cache
+    for (let i = 1; i <= 18; i++) {
+      const img = new Image();
+      img.src = `/${i}h.jpg`;
+    }
   }, []);
 
   useEffect(() => {
