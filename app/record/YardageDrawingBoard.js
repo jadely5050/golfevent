@@ -344,61 +344,60 @@ export default function YardageDrawingBoard({
         onTouchEnd={(e) => { e.preventDefault(); handleEnd(); }}
       />
 
-      <div className="drawing-bottom-bar" style={{ pointerEvents: 'none' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', pointerEvents: 'auto' }} onPointerDown={stopPropagation}>
-          <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '0.3rem', marginBottom: '0.5rem' }}>
+      <div className="drawing-marker-bar" onPointerDown={stopPropagation}>
+        <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '0.3rem' }}>
+          <button 
+            className="drawing-tool-btn" 
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsPanelCollapsed(!isPanelCollapsed); }}
+            style={{ width: '38px', height: '38px' }}
+          >
+            {isPanelCollapsed ? '▲' : '▼'}
+          </button>
+          {!isPanelCollapsed && (mode === 'green' ? ['FLAG', 'P1', 'P2', 'P3', 'P4'] : ['OB', 'HZ', 'B', 'IP', 'LEFT', 'RIGHT', 'UP', 'DOWN']).map(t => (
             <button 
-              className="drawing-tool-btn" 
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsPanelCollapsed(!isPanelCollapsed); }}
-              style={{ width: '38px', height: '38px' }}
-            >
-              {isPanelCollapsed ? '▲' : '▼'}
-            </button>
-            {!isPanelCollapsed && (mode === 'green' ? ['FLAG', 'P1', 'P2', 'P3', 'P4'] : ['OB', 'HZ', 'B', 'IP', 'LEFT', 'RIGHT', 'UP', 'DOWN']).map(t => (
-              <button 
-                key={t}
-                className={`drawing-tool-btn ${activeTool === t ? 'active' : ''}`}
-                style={{ width: '38px', height: '38px', fontSize: '0.8rem' }}
-                onClick={(e) => { 
-                  e.preventDefault(); 
-                  e.stopPropagation();
-                  setActiveTool(prev => prev === t ? 'pencil' : t); 
-                }}
-              >
-                {getMarkerSymbol(t)}
-              </button>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button 
-              className={`drawing-control-btn ${activeTool === 'eraser' ? 'active' : ''}`}
+              key={t}
+              className={`drawing-tool-btn ${activeTool === t ? 'active' : ''}`}
+              style={{ width: '38px', height: '38px', fontSize: '0.8rem' }}
               onClick={(e) => { 
                 e.preventDefault(); 
                 e.stopPropagation();
-                setActiveTool(prev => prev === 'eraser' ? 'pencil' : 'eraser'); 
+                setActiveTool(prev => prev === t ? 'pencil' : t); 
               }}
             >
-              지우개
+              {getMarkerSymbol(t)}
             </button>
-            <input 
-              type="color" 
-              className="color-picker" 
-              value={activeColor} 
-              onChange={(e) => setActiveColor(e.target.value)} 
-              onPointerDown={stopPropagation}
-            />
-            <button 
-              className={`drawing-control-btn ${activeTool === 'pencil' ? 'active' : ''}`}
-              onClick={(e) => { 
-                e.preventDefault(); 
-                e.stopPropagation();
-                setActiveTool('pencil'); 
-              }}
-            >
-              ✎
-            </button>
-          </div>
+          ))}
         </div>
+      </div>
+
+      <div className="drawing-control-bar" onPointerDown={stopPropagation}>
+        <button 
+          className={`drawing-control-btn ${activeTool === 'eraser' ? 'active' : ''}`}
+          onClick={(e) => { 
+            e.preventDefault(); 
+            e.stopPropagation();
+            setActiveTool(prev => prev === 'eraser' ? 'pencil' : 'eraser'); 
+          }}
+        >
+          지우개
+        </button>
+        <input 
+          type="color" 
+          className="color-picker" 
+          value={activeColor} 
+          onChange={(e) => setActiveColor(e.target.value)} 
+          onPointerDown={stopPropagation}
+        />
+        <button 
+          className={`drawing-control-btn ${activeTool === 'pencil' ? 'active' : ''}`}
+          onClick={(e) => { 
+            e.preventDefault(); 
+            e.stopPropagation();
+            setActiveTool('pencil'); 
+          }}
+        >
+          ✎
+        </button>
       </div>
     </div>
   );

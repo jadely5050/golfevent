@@ -489,15 +489,21 @@ p { margin: 0 0 1rem 0; line-height: 1.5; color: var(--text-secondary); }
   border-color: var(--accent-neon);
 }
 
-.drawing-bottom-bar {
+.drawing-marker-bar {
   position: absolute;
   left: 1rem;
   bottom: 1.5rem;
+  z-index: 200;
+}
+
+.drawing-control-bar {
+  position: absolute;
+  left: 5rem;
+  bottom: 1.5rem;
+  z-index: 200;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  z-index: 200;
-  pointer-events: auto;
+  gap: 0.5rem;
 }
 
 
