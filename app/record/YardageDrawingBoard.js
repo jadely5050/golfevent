@@ -344,15 +344,15 @@ export default function YardageDrawingBoard({
         onTouchEnd={(e) => { e.preventDefault(); handleEnd(); }}
       />
 
-      <div className="drawing-bottom-bar" onPointerDown={stopPropagation}>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.5rem', flexWrap: 'wrap', maxWidth: '300px' }}>
+      <div className="drawing-bottom-bar" style={{ pointerEvents: 'none' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', pointerEvents: 'auto' }} onPointerDown={stopPropagation}>
+          <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '0.3rem', marginBottom: '0.5rem' }}>
             <button 
               className="drawing-tool-btn" 
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsPanelCollapsed(!isPanelCollapsed); }}
               style={{ width: '38px', height: '38px' }}
             >
-              {isPanelCollapsed ? '▼' : '▲'}
+              {isPanelCollapsed ? '▲' : '▼'}
             </button>
             {!isPanelCollapsed && (mode === 'green' ? ['FLAG', 'P1', 'P2', 'P3', 'P4'] : ['OB', 'HZ', 'B', 'IP', 'LEFT', 'RIGHT', 'UP', 'DOWN']).map(t => (
               <button 
