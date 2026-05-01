@@ -300,17 +300,17 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave, o
         {drawings.markers.map(marker => (
           <div 
             key={marker.id}
-            className={['OB', 'HZ', 'B', 'IP'].includes(marker.type) ? 'marker-item' : 'marker-arrow'}
+            className={['OB', 'HZ', 'B'].includes(marker.type) ? 'marker-item' : 'marker-arrow'}
             style={{ 
               left: marker.x, 
               top: marker.y,
-              backgroundColor: marker.type === 'OB' ? 'red' : marker.type === 'HZ' ? 'blue' : marker.type === 'B' ? '#eab308' : marker.type === 'IP' ? '#ff4d4f' : 'transparent',
-              color: 'white',
-              padding: (['OB', 'HZ', 'B', 'IP'].includes(marker.type)) ? '2px 6px' : '0',
-              borderRadius: (['OB', 'HZ', 'B', 'IP'].includes(marker.type)) ? '4px' : '0',
-              fontSize: (['OB', 'HZ', 'B', 'IP'].includes(marker.type)) ? '0.9rem' : '1.5rem',
+              backgroundColor: marker.type === 'OB' ? 'red' : marker.type === 'HZ' ? 'blue' : marker.type === 'B' ? '#eab308' : 'transparent',
+              color: marker.type === 'IP' ? '#ff4d4f' : 'white',
+              padding: (['OB', 'HZ', 'B'].includes(marker.type)) ? '2px 6px' : '0',
+              borderRadius: (['OB', 'HZ', 'B'].includes(marker.type)) ? '4px' : '0',
+              fontSize: (['OB', 'HZ', 'B'].includes(marker.type)) ? '0.9rem' : '1.5rem',
               fontWeight: 'bold',
-              textShadow: !(['OB', 'HZ', 'B', 'IP'].includes(marker.type)) ? '0 0 4px rgba(0,0,0,0.8)' : 'none',
+              textShadow: !(['OB', 'HZ', 'B'].includes(marker.type)) ? '0 0 4px rgba(0,0,0,0.8)' : 'none',
               transform: `translate(-50%, -50%) scale(${1/transform.scale})`
             }}
           >
@@ -334,7 +334,14 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave, o
       <div className="drawing-bottom-bar" onPointerDown={stopPropagation}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.5rem', flexWrap: 'wrap', maxWidth: '300px' }}>
-            {['OB', 'HZ', 'B', 'IP', 'LEFT', 'RIGHT', 'UP', 'DOWN'].map(t => (
+            <button 
+              className="drawing-tool-btn" 
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsPanelCollapsed(!isPanelCollapsed); }}
+              style={{ width: '38px', height: '38px' }}
+            >
+              {isPanelCollapsed ? '▼' : '▲'}
+            </button>
+            {!isPanelCollapsed && ['OB', 'HZ', 'B', 'IP', 'LEFT', 'RIGHT', 'UP', 'DOWN'].map(t => (
               <button 
                 key={t}
                 className={`drawing-tool-btn ${activeTool === t ? 'active' : ''}`}
