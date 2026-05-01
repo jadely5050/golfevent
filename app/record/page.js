@@ -566,9 +566,9 @@ export default function RecordRound() {
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className="glass-panel" style={{ padding: '0.75rem' }}>
+            </div>
+            
+            <div style={{ marginTop: '1rem', borderTop: '1px solid var(--glass-border)', paddingTop: '1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.3rem', marginTop: '0.15rem' }}>
               <button className="btn btn-primary" style={{ width: 'auto', padding: '0.6rem 1.2rem', fontSize: '1.2rem' }} onClick={openAddShotModal}>
                 SHOT+
