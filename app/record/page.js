@@ -619,8 +619,8 @@ export default function RecordRound() {
         <div 
           className="glass-panel" 
           style={{ 
-            width: '80px', 
-            padding: '0.25rem', 
+            width: '144px', 
+            padding: '0.4rem', 
             marginBottom: '0', 
             cursor: 'pointer',
             overflow: 'hidden',
@@ -628,15 +628,15 @@ export default function RecordRound() {
             flexDirection: 'column',
             alignItems: 'center',
             border: '1px solid var(--accent-neon)',
-            borderRadius: '12px'
+            borderRadius: '16px'
           }}
           onClick={() => setShowGreenModal(true)}
         >
-          <div style={{ fontSize: '0.5rem', color: 'var(--text-secondary)', marginBottom: '0.1rem' }}>GREEN</div>
+          <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>GREEN</div>
           <img 
             src={`/g${currentHole.hole}.jpg`} 
             alt="Green Preview" 
-            style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '6px' }}
+            style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '10px' }}
           />
         </div>
         <button 
