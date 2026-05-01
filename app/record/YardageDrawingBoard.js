@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 
-export default function YardageDrawingBoard({ holeNumber, drawingData, onSave }) {
+export default function YardageDrawingBoard({ holeNumber, drawingData, onSave, obCount = 0, hazardCount = 0 }) {
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(true);
   const [activeTool, setActiveTool] = useState('pencil');
 
@@ -151,7 +151,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     } else if (transform.scale > 1) {
       isPanning.current = true;
       lastTouchPos.current = { x: clientX, y: clientY };
-    } else if (['OB', 'HZ', 'LEFT', 'RIGHT', 'UP', 'DOWN'].includes(activeTool)) {
+    } else if (['OB', 'HZ', 'B', 'LEFT', 'RIGHT', 'UP', 'DOWN'].includes(activeTool)) {
       const pos = screenToCanvas(x, y);
       const updated = {
         ...drawings,
@@ -258,6 +258,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
     switch (type) {
       case 'OB': return 'OB';
       case 'HZ': return 'HZ';
+      case 'B': return 'B';
       case 'LEFT': return '←';
       case 'RIGHT': return '→';
       case 'UP': return '↑';
@@ -298,17 +299,17 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
         {drawings.markers.map(marker => (
           <div 
             key={marker.id}
-            className={marker.type === 'OB' || marker.type === 'HZ' ? 'marker-item' : 'marker-arrow'}
+            className={['OB', 'HZ', 'B'].includes(marker.type) ? 'marker-item' : 'marker-arrow'}
             style={{ 
               left: marker.x, 
               top: marker.y,
-              backgroundColor: marker.type === 'OB' ? 'red' : marker.type === 'HZ' ? 'blue' : 'transparent',
-              color: (marker.type === 'OB' || marker.type === 'HZ') ? 'white' : 'white', // White for symbols too
-              padding: (marker.type === 'OB' || marker.type === 'HZ') ? '2px 6px' : '0',
-              borderRadius: (marker.type === 'OB' || marker.type === 'HZ') ? '4px' : '0',
-              fontSize: (marker.type === 'OB' || marker.type === 'HZ') ? '0.9rem' : '1.5rem',
+              backgroundColor: marker.type === 'OB' ? 'red' : marker.type === 'HZ' ? 'blue' : marker.type === 'B' ? '#eab308' : 'transparent',
+              color: (['OB', 'HZ', 'B'].includes(marker.type)) ? 'white' : 'white', // White for symbols too
+              padding: (['OB', 'HZ', 'B'].includes(marker.type)) ? '2px 6px' : '0',
+              borderRadius: (['OB', 'HZ', 'B'].includes(marker.type)) ? '4px' : '0',
+              fontSize: (['OB', 'HZ', 'B'].includes(marker.type)) ? '0.9rem' : '1.5rem',
               fontWeight: 'bold',
-              textShadow: (marker.type !== 'OB' && marker.type !== 'HZ') ? '0 0 4px rgba(0,0,0,0.8)' : 'none',
+              textShadow: !(['OB', 'HZ', 'B'].includes(marker.type)) ? '0 0 4px rgba(0,0,0,0.8)' : 'none',
               transform: `translate(-50%, -50%) scale(${1/transform.scale})`
             }}
           >
@@ -337,7 +338,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
         >
           {isPanelCollapsed ? '▼' : '▲'}
         </button>
-        {!isPanelCollapsed && ['OB', 'HZ', 'LEFT', 'RIGHT', 'UP', 'DOWN'].map(t => (
+        {!isPanelCollapsed && ['OB', 'HZ', 'B', 'LEFT', 'RIGHT', 'UP', 'DOWN'].map(t => (
           <button 
             key={t}
             className={`drawing-tool-btn ${activeTool === t ? 'active' : ''}`}
@@ -355,7 +356,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave })
       <div className="drawing-bottom-bar" onPointerDown={stopPropagation}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div className="drawing-stat-badge">
-            H: {drawings.markers.filter(m => m.type === 'HZ').length}, O: {drawings.markers.filter(m => m.type === 'OB').length}
+            H: {hazardCount}, O: {obCount}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button 

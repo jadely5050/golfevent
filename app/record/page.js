@@ -195,6 +195,8 @@ export default function RecordRound() {
 
   const currentHole = holes[currentHoleIdx];
   const currentShots = currentHole.shots || [];
+  const obCount = currentShots.filter(s => s.penalty === 'O').length;
+  const hazardCount = currentShots.filter(s => s.penalty === 'H').length;
 
   const computeScore = (shots, par) => shots.length + shots.reduce((acc, s, idx) => {
     let penalty = 0;
@@ -486,6 +488,8 @@ export default function RecordRound() {
         <YardageDrawingBoard 
           holeNumber={currentHole.hole} 
           drawingData={currentHole.drawings} 
+          obCount={obCount}
+          hazardCount={hazardCount}
           onSave={(data) => {
             const newHoles = [...holes];
             newHoles[currentHoleIdx] = { ...newHoles[currentHoleIdx], drawings: data };
