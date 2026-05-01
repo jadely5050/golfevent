@@ -530,17 +530,29 @@ export default function RecordRound() {
 
             <div style={{ paddingBottom: '0.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <div>
-                  <span style={{ color: 'white', fontSize: '0.7rem', display: 'block', marginBottom: '0.1rem' }}>SCORE</span>
-                  <strong style={{ fontSize: '1.2rem', color: currentHoleScore <= currentHole.par && currentHoleScore > 0 ? 'var(--accent-neon)' : 'white' }}>
-                    {currentHoleScore}
-                  </strong>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div>
+                    <span style={{ color: 'white', fontSize: '0.7rem', display: 'block', marginBottom: '0.1rem' }}>SCORE</span>
+                    <strong style={{ fontSize: '1.2rem', color: currentHoleScore <= currentHole.par && currentHoleScore > 0 ? 'var(--accent-neon)' : 'white' }}>
+                      {currentHoleScore}
+                    </strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'white', fontSize: '0.7rem', display: 'block', marginBottom: '0.1rem' }}>PUTT</span>
+                    <strong style={{ fontSize: '1.2rem', color: 'white' }}>
+                      {currentHolePutts}
+                    </strong>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ color: 'white', fontSize: '0.7rem', display: 'block', marginBottom: '0.1rem' }}>PUTT</span>
-                  <strong style={{ fontSize: '1rem', color: 'white' }}>
-                    {currentHolePutts}
-                  </strong>
+                <div style={{ textAlign: 'right', display: 'flex', gap: '0.75rem' }}>
+                  <div>
+                    <span style={{ color: 'white', fontSize: '0.7rem', display: 'block', marginBottom: '0.1rem' }}>H</span>
+                    <strong style={{ fontSize: '1.2rem', color: 'white' }}>{totalHazardCount}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'white', fontSize: '0.7rem', display: 'block', marginBottom: '0.1rem' }}>O</span>
+                    <strong style={{ fontSize: '1.2rem', color: 'white' }}>{totalObCount}</strong>
+                  </div>
                 </div>
               </div>
             </div>

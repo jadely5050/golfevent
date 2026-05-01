@@ -151,7 +151,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave, o
     } else if (transform.scale > 1) {
       isPanning.current = true;
       lastTouchPos.current = { x: clientX, y: clientY };
-    } else if (['OB', 'HZ', 'B', 'LEFT', 'RIGHT', 'UP', 'DOWN'].includes(activeTool)) {
+    } else if (['OB', 'HZ', 'B', 'IP', 'LEFT', 'RIGHT', 'UP', 'DOWN'].includes(activeTool)) {
       const pos = screenToCanvas(x, y);
       const updated = {
         ...drawings,
@@ -259,6 +259,7 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave, o
       case 'OB': return 'OB';
       case 'HZ': return 'HZ';
       case 'B': return 'B';
+      case 'IP': return '❤️';
       case 'LEFT': return '←';
       case 'RIGHT': return '→';
       case 'UP': return '↑';
@@ -299,17 +300,17 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave, o
         {drawings.markers.map(marker => (
           <div 
             key={marker.id}
-            className={['OB', 'HZ', 'B'].includes(marker.type) ? 'marker-item' : 'marker-arrow'}
+            className={['OB', 'HZ', 'B', 'IP'].includes(marker.type) ? 'marker-item' : 'marker-arrow'}
             style={{ 
               left: marker.x, 
               top: marker.y,
-              backgroundColor: marker.type === 'OB' ? 'red' : marker.type === 'HZ' ? 'blue' : marker.type === 'B' ? '#eab308' : 'transparent',
-              color: (['OB', 'HZ', 'B'].includes(marker.type)) ? 'white' : 'white', // White for symbols too
-              padding: (['OB', 'HZ', 'B'].includes(marker.type)) ? '2px 6px' : '0',
-              borderRadius: (['OB', 'HZ', 'B'].includes(marker.type)) ? '4px' : '0',
-              fontSize: (['OB', 'HZ', 'B'].includes(marker.type)) ? '0.9rem' : '1.5rem',
+              backgroundColor: marker.type === 'OB' ? 'red' : marker.type === 'HZ' ? 'blue' : marker.type === 'B' ? '#eab308' : marker.type === 'IP' ? '#ff4d4f' : 'transparent',
+              color: 'white',
+              padding: (['OB', 'HZ', 'B', 'IP'].includes(marker.type)) ? '2px 6px' : '0',
+              borderRadius: (['OB', 'HZ', 'B', 'IP'].includes(marker.type)) ? '4px' : '0',
+              fontSize: (['OB', 'HZ', 'B', 'IP'].includes(marker.type)) ? '0.9rem' : '1.5rem',
               fontWeight: 'bold',
-              textShadow: !(['OB', 'HZ', 'B'].includes(marker.type)) ? '0 0 4px rgba(0,0,0,0.8)' : 'none',
+              textShadow: !(['OB', 'HZ', 'B', 'IP'].includes(marker.type)) ? '0 0 4px rgba(0,0,0,0.8)' : 'none',
               transform: `translate(-50%, -50%) scale(${1/transform.scale})`
             }}
           >
@@ -330,33 +331,23 @@ export default function YardageDrawingBoard({ holeNumber, drawingData, onSave, o
         onTouchEnd={(e) => { e.preventDefault(); handleEnd(); }}
       />
 
-      <div className="drawing-tool-panel" onPointerDown={stopPropagation} style={{ height: isPanelCollapsed ? '54px' : 'auto', overflow: 'hidden' }}>
-        <button 
-          className="drawing-tool-btn" 
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsPanelCollapsed(!isPanelCollapsed); }}
-          style={{ marginBottom: isPanelCollapsed ? 0 : '0.5rem' }}
-        >
-          {isPanelCollapsed ? '▼' : '▲'}
-        </button>
-        {!isPanelCollapsed && ['OB', 'HZ', 'B', 'LEFT', 'RIGHT', 'UP', 'DOWN'].map(t => (
-          <button 
-            key={t}
-            className={`drawing-tool-btn ${activeTool === t ? 'active' : ''}`}
-            onClick={(e) => { 
-              e.preventDefault(); 
-              e.stopPropagation();
-              setActiveTool(prev => prev === t ? 'pencil' : t); 
-            }}
-          >
-            {getMarkerSymbol(t)}
-          </button>
-        ))}
-      </div>
-
       <div className="drawing-bottom-bar" onPointerDown={stopPropagation}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div className="drawing-stat-badge">
-            H: {hazardCount}, O: {obCount}
+          <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.5rem', flexWrap: 'wrap', maxWidth: '300px' }}>
+            {['OB', 'HZ', 'B', 'IP', 'LEFT', 'RIGHT', 'UP', 'DOWN'].map(t => (
+              <button 
+                key={t}
+                className={`drawing-tool-btn ${activeTool === t ? 'active' : ''}`}
+                style={{ width: '38px', height: '38px', fontSize: '0.8rem' }}
+                onClick={(e) => { 
+                  e.preventDefault(); 
+                  e.stopPropagation();
+                  setActiveTool(prev => prev === t ? 'pencil' : t); 
+                }}
+              >
+                {getMarkerSymbol(t)}
+              </button>
+            ))}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button 
