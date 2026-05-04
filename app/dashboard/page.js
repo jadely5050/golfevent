@@ -205,7 +205,7 @@ function DashboardContent() {
                                 <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Landing: {s.landing}</div>
                                 <div style={{ fontSize: '0.8rem' }}>{s.tDis || '-'}/{s.fDis || '-'} m</div>
                                 {s.penalty !== '-' && <div style={{ color: '#ef4444', fontSize: '0.75rem' }}>Penalty: {s.penalty}</div>}
-                                {s.memo && <div style={{ fontSize: '0.7rem', fontStyle: 'italic', marginTop: '0.2rem' }}>"{s.memo}"</div>}
+                                {s.memo && <div style={{ fontSize: '0.7rem', fontStyle: 'italic', marginTop: '0.2rem' }}>{`"${s.memo}"`}</div>}
                               </div>
                             </div>
                           ))}
