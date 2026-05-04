@@ -567,8 +567,8 @@ p { margin: 0 0 1rem 0; line-height: 1.5; color: var(--text-secondary); }
 
 /* Dashboard Refined Styles (PC) */
 .dashboard-container {
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   padding: 2rem;
   color: var(--text-primary);
 }
@@ -727,9 +727,9 @@ p { margin: 0 0 1rem 0; line-height: 1.5; color: var(--text-secondary); }
 }
 
 .transposed-table th, .transposed-table td {
-  padding: 0.75rem;
+  padding: 0.75rem 0.25rem;
   border: 1px solid var(--glass-border);
-  min-width: 60px;
+  min-width: 48px;
   text-align: center;
 }
 
