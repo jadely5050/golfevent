@@ -1,22 +1,14 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, Fragment } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 function DashboardContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const id = searchParams.get('id');
   const [round, setRound] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const [expandedHole, setExpandedHole] = useState(null);
 
   useEffect(() => {
     if (id) {
@@ -24,330 +16,227 @@ function DashboardContent() {
       if (saved) {
         const parsed = JSON.parse(saved);
         const found = parsed.find(r => r.id === id);
-        if (found) {
-          setRound(found);
-        }
+        if (found) setRound(found);
       }
     }
   }, [id]);
 
   if (!round) {
     return (
-      <div className="container" style={{ textAlign: 'center', padding: '5rem 1rem' }}>
-        <p>라운드 데이터를 찾을 수 없습니다.</p>
-        <Link href="/">
-          <button className="btn btn-secondary">홈으로 돌아가기</button>
-        </Link>
+      <div className="dashboard-container" style={{ textAlign: 'center', paddingTop: '10rem' }}>
+        <p>데이터를 불러올 수 없습니다.</p>
+        <Link href="/" className="btn btn-secondary" style={{ width: 'auto', marginTop: '1rem' }}>홈으로 이동</Link>
       </div>
     );
   }
 
-  // 데이터 가공 로직
-  const processHoleData = (hole) => {
-    const shots = hole.shots || [];
-    const par = hole.par || 4;
-    
-    // Score 계산 (기존 로직 유지)
-    const score = shots.length + shots.reduce((acc, s, idx) => {
-      let penalty = 0;
-      if (s.penalty === 'O') {
-        penalty = (par >= 4 && idx === 0) ? 2 : 1;
-      } else if (s.penalty === 'H') {
-        penalty = 1;
-      }
-      return acc + penalty;
-    }, 0);
+  // --- 데이터 가공 엔진 ---
+  const processData = () => {
+    const holes = round.holes.map(h => {
+      const shots = h.shots || [];
+      const par = h.par || 4;
+      
+      // Score 계산 (기존 로직: 샷수 + 벌타)
+      const score = shots.length + shots.reduce((acc, s, idx) => {
+        let penalty = 0;
+        if (s.penalty === 'O') penalty = (par >= 4 && idx === 0) ? 2 : 1;
+        else if (s.penalty === 'H') penalty = 1;
+        return acc + penalty;
+      }, 0);
 
-    const putts = shots.filter(s => s.club === 'Pt').length;
-    const isGIR = (shots.length - putts) <= (par - 2);
-    const fairwayHit = shots.length > 0 && shots[0].club !== 'Pt' && shots[0].landing === 'F';
-    const teeClub = (shots.length > 0 && shots[0].club !== 'Pt') ? shots[0].club : '-';
+      const putts = shots.filter(s => s.club === 'Pt').length;
+      const gir = (shots.length - putts) <= (par - 2);
+      const fw = shots.length > 0 && shots[0].club !== 'Pt' && shots[0].landing === 'F';
+      const teeClub = (shots.length > 0 && shots[0].club !== 'Pt') ? shots[0].club : '-';
+      const sandShots = shots.filter(s => s.landing === 'B').length;
+      const penaltyCount = shots.filter(s => s.penalty !== '-').length;
+      const penaltyType = shots.find(s => s.penalty !== '-') ? shots.find(s => s.penalty !== '-').penalty : '-';
+      
+      // 메모 기반 샷 퀄리티 (탑볼, 뒷땅, 더덕)
+      const isTop = shots.some(s => s.memo?.includes('탑볼') || s.memo?.includes('탑'));
+      const isDuff = shots.some(s => s.memo?.includes('뒷땅') || s.memo?.includes('더덕') || s.memo?.includes('뒷'));
 
-    return { ...hole, score, putts, isGIR, fairwayHit, teeClub };
+      return { 
+        ...h, 
+        score, 
+        putts, 
+        gir, 
+        fw, 
+        teeClub, 
+        sandShots, 
+        penaltyType,
+        isTop,
+        isDuff,
+        diff: score - par
+      };
+    });
+
+    const outHoles = holes.slice(0, 9);
+    const inHoles = holes.slice(9, 18);
+
+    const getStats = (targetHoles) => {
+      const dists = targetHoles.flatMap(h => h.shots || [])
+        .filter(s => s.club === 'W1' && s.fDis)
+        .map(s => parseInt(s.fDis));
+      
+      return {
+        score: targetHoles.reduce((a, b) => a + b.score, 0),
+        par: targetHoles.reduce((a, b) => a + b.par, 0),
+        putts: targetHoles.reduce((a, b) => a + b.putts, 0),
+        birdies: targetHoles.filter(h => h.diff <= -1).length,
+        pars: targetHoles.filter(h => h.diff === 0).length,
+        bogeys: targetHoles.filter(h => h.diff === 1).length,
+        dbogeys: targetHoles.filter(h => h.diff === 2).length,
+        tbogeys: targetHoles.filter(h => h.diff === 3).length,
+        doublePars: targetHoles.filter(h => h.diff >= targetHoles[0]?.par).length,
+        threePutts: targetHoles.filter(h => h.putts >= 3).length,
+        onePutts: targetHoles.filter(h => h.putts <= 1).length,
+        tops: targetHoles.filter(h => h.isTop).length,
+        duffs: targetHoles.filter(h => h.isDuff).length,
+        maxDrive: dists.length > 0 ? Math.max(...dists) : 0
+      };
+    };
+
+    return { 
+      holes, 
+      out: getStats(outHoles), 
+      in: getStats(inHoles), 
+      total: getStats(holes) 
+    };
   };
 
-  const processedHoles = round.holes.map(processHoleData);
-  const outHoles = processedHoles.slice(0, 9);
-  const inHoles = processedHoles.slice(9, 18);
+  const data = processData();
 
-  const calculateTotal = (holes) => ({
-    par: holes.reduce((a, b) => a + b.par, 0),
-    score: holes.reduce((a, b) => a + b.score, 0),
-    putts: holes.reduce((a, b) => a + b.putts, 0),
-    gir: holes.filter(h => h.isGIR).length,
-    fw: holes.filter(h => h.fairwayHit).length
-  });
+  const toggleHole = (holeNum) => {
+    setExpandedHole(expandedHole === holeNum ? null : holeNum);
+  };
 
-  const outTotal = calculateTotal(outHoles);
-  const inTotal = calculateTotal(inHoles);
-  const grandTotal = calculateTotal(processedHoles);
-
-  // 클럽별 통계
-  const allShots = processedHoles.flatMap(h => h.shots || []);
-  const clubStats = allShots.reduce((acc, s) => {
-    if (!acc[s.club]) acc[s.club] = { used: 0, hzd: 0, ob: 0, dists: [] };
-    acc[s.club].used += 1;
-    if (s.penalty === 'H') acc[s.club].hzd += 1;
-    if (s.penalty === 'O') acc[s.club].ob += 1;
-    if (s.fDis) acc[s.club].dists.push(parseInt(s.fDis));
-    return acc;
-  }, {});
-
-  // 스코어 분포
-  const scoreDist = processedHoles.reduce((acc, h) => {
-    const diff = h.score - h.par;
-    if (h.putts >= 3) acc['3putt'] = (acc['3putt'] || 0) + 1;
-    if (diff <= -2) acc['eagle'] = (acc['eagle'] || 0) + 1;
-    else if (diff === -1) acc['birdie'] = (acc['birdie'] || 0) + 1;
-    else if (diff === 0) acc['par'] = (acc['par'] || 0) + 1;
-    else if (diff === 1) acc['bogey'] = (acc['bogey'] || 0) + 1;
-    else if (diff === 2) acc['dbogey'] = (acc['dbogey'] || 0) + 1;
-    else if (diff === 3) acc['tbogey'] = (acc['tbogey'] || 0) + 1;
-    else acc['others'] = (acc['others'] || 0) + 1;
-    return acc;
-  }, {});
-
-  const renderPC = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', padding: '1rem' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '2px solid var(--accent-neon)', paddingBottom: '1rem' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '2.5rem' }}>{round.course}</h1>
-          <div style={{ color: 'var(--text-secondary)', fontSize: '1.2rem' }}>{round.date}</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>
-            {grandTotal.score} <span style={{ fontSize: '1.5rem', fontWeight: '400', color: 'var(--text-secondary)' }}>({grandTotal.score - grandTotal.par > 0 ? '+' : ''}{grandTotal.score - grandTotal.par})</span>
-          </div>
-          <div style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>Total Putts: {grandTotal.putts}</div>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {/* Scorecard Table */}
-          <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
-            <table className="dashboard-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center' }}>
-              <thead>
-                <tr style={{ background: 'rgba(255,255,255,0.1)' }}>
-                  <th style={{ padding: '0.5rem' }}>HOLE</th>
-                  {[...Array(9)].map((_, i) => <th key={i}>{i + 1}</th>)}
-                  <th style={{ borderLeft: '1px solid var(--glass-border)' }}>OUT</th>
-                  {[...Array(9)].map((_, i) => <th key={i + 9}>{i + 10}</th>)}
-                  <th style={{ borderLeft: '1px solid var(--glass-border)' }}>IN</th>
-                  <th style={{ borderLeft: '2px solid var(--accent-neon)' }}>TOTAL</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>PAR</td>
-                  {outHoles.map((h, i) => <td key={i}>{h.par}</td>)}
-                  <td style={{ borderLeft: '1px solid var(--glass-border)', fontWeight: 'bold' }}>{outTotal.par}</td>
-                  {inHoles.map((h, i) => <td key={i}>{h.par}</td>)}
-                  <td style={{ borderLeft: '1px solid var(--glass-border)', fontWeight: 'bold' }}>{inTotal.par}</td>
-                  <td style={{ borderLeft: '2px solid var(--accent-neon)', fontWeight: 'bold' }}>{grandTotal.par}</td>
-                </tr>
-                <tr>
-                  <td>SCORE</td>
-                  {outHoles.map((h, i) => <td key={i} style={{ color: h.score < h.par ? 'var(--accent-neon)' : h.score > h.par ? '#ff4d4d' : 'white' }}>{h.score}</td>)}
-                  <td style={{ borderLeft: '1px solid var(--glass-border)', fontWeight: 'bold' }}>{outTotal.score}</td>
-                  {inHoles.map((h, i) => <td key={i} style={{ color: h.score < h.par ? 'var(--accent-neon)' : h.score > h.par ? '#ff4d4d' : 'white' }}>{h.score}</td>)}
-                  <td style={{ borderLeft: '1px solid var(--glass-border)', fontWeight: 'bold' }}>{inTotal.score}</td>
-                  <td style={{ borderLeft: '2px solid var(--accent-neon)', fontWeight: 'bold' }}>{grandTotal.score}</td>
-                </tr>
-                <tr>
-                  <td>PUTT</td>
-                  {outHoles.map((h, i) => <td key={i}>{h.putts}</td>)}
-                  <td style={{ borderLeft: '1px solid var(--glass-border)' }}>{outTotal.putts}</td>
-                  {inHoles.map((h, i) => <td key={i}>{h.putts}</td>)}
-                  <td style={{ borderLeft: '1px solid var(--glass-border)' }}>{inTotal.putts}</td>
-                  <td style={{ borderLeft: '2px solid var(--accent-neon)' }}>{grandTotal.putts}</td>
-                </tr>
-                <tr>
-                  <td>GIR</td>
-                  {outHoles.map((h, i) => <td key={i} style={{ color: 'var(--accent-neon)' }}>{h.isGIR ? '●' : ''}</td>)}
-                  <td style={{ borderLeft: '1px solid var(--glass-border)' }}>{outTotal.gir}</td>
-                  {inHoles.map((h, i) => <td key={i} style={{ color: 'var(--accent-neon)' }}>{h.isGIR ? '●' : ''}</td>)}
-                  <td style={{ borderLeft: '1px solid var(--glass-border)' }}>{inTotal.gir}</td>
-                  <td style={{ borderLeft: '2px solid var(--accent-neon)' }}>{grandTotal.gir}</td>
-                </tr>
-                <tr>
-                  <td>F/W</td>
-                  {outHoles.map((h, i) => <td key={i} style={{ color: '#4dabf7' }}>{h.fairwayHit ? '●' : ''}</td>)}
-                  <td style={{ borderLeft: '1px solid var(--glass-border)' }}>{outTotal.fw}</td>
-                  {inHoles.map((h, i) => <td key={i} style={{ color: '#4dabf7' }}>{h.fairwayHit ? '●' : ''}</td>)}
-                  <td style={{ borderLeft: '1px solid var(--glass-border)' }}>{inTotal.fw}</td>
-                  <td style={{ borderLeft: '2px solid var(--accent-neon)' }}>{grandTotal.fw}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Shot Details Grid */}
-          <div className="glass-panel" style={{ padding: '1.5rem' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '1rem', borderLeft: '4px solid var(--accent-neon)', paddingLeft: '0.5rem' }}>상세 샷 기록</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '1rem' }}>
-              {processedHoles.map(h => (
-                <div key={h.hole} style={{ background: 'rgba(255,255,255,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
-                  <div style={{ fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '0.3rem', paddingBottom: '0.2rem' }}>{h.hole}H (Par {h.par})</div>
-                  {h.shots && h.shots.map((s, idx) => (
-                    <div key={idx} style={{ fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', opacity: 0.8 }}>
-                      <span>{s.club} {s.shotType}</span>
-                      <span>{s.tDis || s.fDis || '-'}m</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          <div className="glass-panel" style={{ padding: '1rem' }}>
-            <h4 style={{ marginTop: 0, color: 'var(--accent-neon)' }}>클럽별 사용 통계</h4>
-            <div style={{ fontSize: '0.85rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.3rem' }}>
-                <span>Club</span>
-                <span>Used</span>
-                <span>Err(H/O)</span>
-              </div>
-              {Object.entries(clubStats).sort((a, b) => b[1].used - a[1].used).map(([club, stat]) => (
-                <div key={club} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '0.2rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <span>{club}</span>
-                  <span>{stat.used}</span>
-                  <span style={{ color: (stat.hzd + stat.ob) > 0 ? '#ff4d4d' : 'inherit' }}>{stat.hzd}/{stat.ob}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="glass-panel" style={{ padding: '1rem' }}>
-            <h4 style={{ marginTop: 0, color: 'var(--accent-neon)' }}>스코어 분포</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {[
-                { label: 'Birdie-', value: (scoreDist.eagle || 0) + (scoreDist.birdie || 0), color: 'var(--accent-neon)' },
-                { label: 'Par', value: scoreDist.par || 0, color: 'white' },
-                { label: 'Bogey', value: scoreDist.bogey || 0, color: '#fcc419' },
-                { label: 'Double+', value: (scoreDist.dbogey || 0) + (scoreDist.tbogey || 0) + (scoreDist.others || 0), color: '#ff4d4d' },
-                { label: '3-Putts', value: scoreDist['3putt'] || 0, color: '#fab005' }
-              ].map(item => (
-                <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.9rem' }}>{item.label}</span>
-                  <span style={{ fontWeight: 'bold', color: item.color }}>{item.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <style jsx>{`
-        .dashboard-table th, .dashboard-table td {
-          padding: 0.4rem;
-          border-bottom: 1px solid var(--glass-border);
-          font-size: 0.9rem;
-        }
-        .dashboard-table th { font-weight: 600; color: var(--text-secondary); }
-      `}</style>
-    </div>
-  );
-
-  const renderMobile = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1rem' }}>
-      <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-        <h1 style={{ margin: 0, fontSize: '1.5rem' }}>{round.course}</h1>
-        <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{round.date}</div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-        <div className="glass-panel" style={{ textAlign: 'center', padding: '1rem' }}>
-          <div style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--accent-neon)' }}>{grandTotal.score}</div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>SCORE</div>
-        </div>
-        <div className="glass-panel" style={{ textAlign: 'center', padding: '1rem' }}>
-          <div style={{ fontSize: '2rem', fontWeight: '900' }}>{Math.round((grandTotal.gir / 18) * 100)}%</div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>GIR</div>
-        </div>
-        <div className="glass-panel" style={{ textAlign: 'center', padding: '1rem' }}>
-          <div style={{ fontSize: '2rem', fontWeight: '900' }}>{(grandTotal.putts / 18).toFixed(1)}</div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>AVG PUTTS</div>
-        </div>
-        <div className="glass-panel" style={{ textAlign: 'center', padding: '1rem' }}>
-          <div style={{ fontSize: '2rem', fontWeight: '900' }}>{grandTotal.fw}/14</div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>FAIRWAY</div>
-        </div>
-      </div>
-
-      <div className="glass-panel" style={{ padding: '1rem' }}>
-        <h4 style={{ marginTop: 0, marginBottom: '0.75rem' }}>OUT COURSE</h4>
-        <table style={{ width: '100%', textAlign: 'center', fontSize: '0.85rem' }}>
-          <thead>
-            <tr style={{ color: 'var(--text-secondary)' }}>
-              <th>H</th>
-              <th>P</th>
-              <th>S</th>
-              <th>P</th>
-              <th>G</th>
-            </tr>
-          </thead>
-          <tbody>
-            {outHoles.map(h => (
-              <tr key={h.hole}>
-                <td style={{ padding: '0.3rem' }}>{h.hole}</td>
-                <td>{h.par}</td>
-                <td style={{ fontWeight: 'bold', color: h.score < h.par ? 'var(--accent-neon)' : 'inherit' }}>{h.score}</td>
-                <td>{h.putts}</td>
-                <td style={{ color: 'var(--accent-neon)' }}>{h.isGIR ? '●' : ''}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="glass-panel" style={{ padding: '1rem' }}>
-        <h4 style={{ marginTop: 0, marginBottom: '0.75rem' }}>IN COURSE</h4>
-        <table style={{ width: '100%', textAlign: 'center', fontSize: '0.85rem' }}>
-          <thead>
-            <tr style={{ color: 'var(--text-secondary)' }}>
-              <th>H</th>
-              <th>P</th>
-              <th>S</th>
-              <th>P</th>
-              <th>G</th>
-            </tr>
-          </thead>
-          <tbody>
-            {inHoles.map(h => (
-              <tr key={h.hole}>
-                <td style={{ padding: '0.3rem' }}>{h.hole}</td>
-                <td>{h.par}</td>
-                <td style={{ fontWeight: 'bold', color: h.score < h.par ? 'var(--accent-neon)' : 'inherit' }}>{h.score}</td>
-                <td>{h.putts}</td>
-                <td style={{ color: 'var(--accent-neon)' }}>{h.isGIR ? '●' : ''}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {round.memo && (
-        <div className="glass-panel" style={{ padding: '1rem' }}>
-          <h4 style={{ marginTop: 0, marginBottom: '0.5rem' }}>MEMO</h4>
-          <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8, whiteSpace: 'pre-wrap' }}>{round.memo}</p>
-        </div>
-      )}
-    </div>
-  );
+  const getRowClass = (diff) => {
+    if (diff <= -1) return 'bg-birdie';
+    if (diff === 0) return 'bg-par';
+    if (diff === 1) return 'bg-bogey';
+    return 'bg-double';
+  };
 
   return (
-    <div className="container" style={{ animation: 'fadeIn 0.5s ease-out' }}>
-      <div style={{ marginBottom: '1rem' }}>
-        <Link href="/" style={{ textDecoration: 'none', color: 'var(--accent-neon)' }}>← Back to List</Link>
+    <div className="dashboard-container" style={{ animation: 'fadeIn 0.5s ease-out' }}>
+      {/* --- 상단 헤더 --- */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <Link href="/" style={{ textDecoration: 'none', color: 'var(--accent-neon)', fontWeight: 'bold' }}>← BACK TO HOME</Link>
+        <div style={{ textAlign: 'right' }}>
+          <h1 style={{ margin: 0, fontSize: '2rem' }}>{round.course}</h1>
+          <div style={{ color: 'var(--text-secondary)' }}>{round.date} | Total Score: <span style={{ color: 'var(--accent-neon)', fontWeight: 'bold' }}>{data.total.score}</span> ({data.total.score - data.total.par > 0 ? '+' : ''}{data.total.score - data.total.par})</div>
+        </div>
       </div>
-      {isMobile ? renderMobile() : renderPC()}
+
+      {/* --- 요약 섹션 (Cards) --- */}
+      <div className="summary-grid">
+        <div className="summary-card">
+          <h4>Score Distribution</h4>
+          <div className="summary-value" style={{ fontSize: '1.2rem' }}>
+            B:{data.total.birdies} / P:{data.total.pars} / B:{data.total.bogeys}
+          </div>
+          <div className="summary-subtext">D:{data.total.dbogeys} / T:{data.total.tbogeys} / DP:{data.total.doublePars}</div>
+        </div>
+        <div className="summary-card">
+          <h4>Putting & Touch</h4>
+          <div className="summary-value">{data.total.threePutts} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>3-Putts</span></div>
+          <div className="summary-subtext">땡그랑(1-Putt/Chip-in): <span style={{ color: 'var(--accent-neon)' }}>{data.total.onePutts}</span></div>
+        </div>
+        <div className="summary-card">
+          <h4>Shot Quality</h4>
+          <div className="summary-value">{data.total.tops} / {data.total.duffs}</div>
+          <div className="summary-subtext">Top(탑볼) / Duff(뒷땅,더덕)</div>
+        </div>
+        <div className="summary-card">
+          <h4>Max Drive</h4>
+          <div className="summary-value">{data.total.maxDrive} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>m</span></div>
+          <div className="summary-subtext">Round Best Driver Distance</div>
+        </div>
+      </div>
+
+      {/* --- 메인 테이블 --- */}
+      <div className="table-container">
+        <table className="dashboard-main-table">
+          <thead>
+            <tr>
+              <th>Hole</th>
+              <th>Par</th>
+              <th>Score</th>
+              <th>Net</th>
+              <th>HDCP</th>
+              <th>Putt</th>
+              <th>T-Club</th>
+              <th>F/W</th>
+              <th>GIR</th>
+              <th>Penalty</th>
+              <th>Sand</th>
+              <th style={{ width: '150px' }}>Memo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.holes.map((h) => (
+              <Fragment key={h.hole}>
+                <tr onClick={() => toggleHole(h.hole)} className={getRowClass(h.diff)}>
+                  <td className="mono" style={{ fontWeight: 'bold' }}>{h.hole}</td>
+                  <td className="mono">{h.par}</td>
+                  <td className="mono" style={{ fontWeight: 'bold' }}>{h.score}</td>
+                  <td className="mono">{h.score}</td> {/* Net Score - 우선 Score와 동일하게 표시 */}
+                  <td className="mono" style={{ opacity: 0.5 }}>-</td>
+                  <td className="mono">{h.putts}</td>
+                  <td className="mono" style={{ color: 'var(--accent-neon)' }}>{h.teeClub}</td>
+                  <td className="mono">{h.fw ? 'O' : 'X'}</td>
+                  <td className="mono">{h.gir ? 'O' : 'X'}</td>
+                  <td className={`mono ${h.penaltyType !== '-' ? 'penalty-text' : ''}`}>{h.penaltyType}</td>
+                  <td className="mono">{h.sandShots > 0 ? h.sandShots : '-'}</td>
+                  <td style={{ fontSize: '0.75rem', textAlign: 'left', opacity: 0.7 }}>{h.memo || '-'}</td>
+                </tr>
+                {expandedHole === h.hole && (
+                  <tr className="detail-row">
+                    <td colSpan="12">
+                      <div className="detail-content" style={{ animation: 'slideDown 0.3s ease-out' }}>
+                        <div style={{ marginBottom: '1rem', fontWeight: 'bold', color: 'var(--accent-neon)' }}>Hole {h.hole} Detailed Shots</div>
+                        <div className="shot-timeline">
+                          {h.shots.map((s, idx) => (
+                            <div key={idx} className="shot-card">
+                              <div className="shot-card-header">SHOT {idx + 1}</div>
+                              <div className="shot-card-body">
+                                <div><strong>{s.club}</strong> ({s.shotType})</div>
+                                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Landing: {s.landing}</div>
+                                <div style={{ fontSize: '0.8rem' }}>{s.tDis || '-'}/{s.fDis || '-'} m</div>
+                                {s.penalty !== '-' && <div style={{ color: '#ef4444', fontSize: '0.75rem' }}>Penalty: {s.penalty}</div>}
+                                {s.memo && <div style={{ fontSize: '0.7rem', fontStyle: 'italic', marginTop: '0.2rem' }}>"{s.memo}"</div>}
+                              </div>
+                            </div>
+                          ))}
+                          {h.shots.length === 0 && <div style={{ opacity: 0.5 }}>기록된 샷이 없습니다.</div>}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            ))}
+          </tbody>
+          {/* 하단 합계 행 */}
+          <tfoot style={{ background: 'rgba(255,255,255,0.05)', fontWeight: 'bold' }}>
+            <tr>
+              <td>TOTAL</td>
+              <td className="mono">{data.total.par}</td>
+              <td className="mono" style={{ color: 'var(--accent-neon)' }}>{data.total.score}</td>
+              <td className="mono">{data.total.score}</td>
+              <td className="mono">-</td>
+              <td className="mono">{data.total.putts}</td>
+              <td colSpan="6"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 1000px; } }
+        .dashboard-main-table tfoot td { padding: 1rem 0.5rem; border-top: 2px solid var(--accent-neon); }
       `}} />
     </div>
   );
@@ -355,7 +244,7 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<div className="container" style={{ textAlign: 'center', padding: '5rem' }}>Loading Dashboard...</div>}>
+    <Suspense fallback={<div className="dashboard-container" style={{ textAlign: 'center', paddingTop: '10rem' }}>Loading Dashboard...</div>}>
       <DashboardContent />
     </Suspense>
   );
