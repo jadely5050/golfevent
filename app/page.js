@@ -179,9 +179,17 @@ export default function Dashboard() {
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{round.putts} 퍼팅</div>
                 </div>
+                <Link href={`/dashboard?id=${round.id}`} onClick={(e) => e.stopPropagation()} style={{ textDecoration: 'none' }}>
+                  <button 
+                    style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '38px', height: '38px', color: 'var(--accent-neon)', fontWeight: 'bold' }}
+                    title="대시보드 보기"
+                  >
+                    D
+                  </button>
+                </Link>
                 <button 
                   onClick={(e) => uploadRound(e, round)}
-                  style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '38px', height: '38px' }}
                   title="서버로 업로드"
                 >
                   ☁️
