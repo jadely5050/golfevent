@@ -255,17 +255,19 @@ function DashboardContent() {
               Hole {selectedHole.hole}
               <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Par {selectedHole.par}</span>
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {selectedHole.shots.map((s, idx) => (
-                <div key={idx} className="shot-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div className="shot-card-header">SHOT {idx + 1}</div>
-                    <div style={{ fontWeight: 'bold' }}>{s.club} <span style={{ opacity: 0.6, fontWeight: 'normal' }}>({s.shotType})</span></div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Landing: {s.landing}</div>
+                <div key={idx} className="shot-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div className="shot-card-header" style={{ margin: 0, minWidth: '45px' }}>#{idx + 1}</div>
+                    <div>
+                      <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{s.club} <span style={{ opacity: 0.6, fontWeight: 'normal', fontSize: '0.8rem' }}>({s.shotType})</span></div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>L: {s.landing} | {s.penalty !== '-' ? <span className="penalty-text">{s.penalty}</span> : 'No Penalty'}</div>
+                    </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div className="mono" style={{ fontSize: '1.1rem' }}>{s.fDis || s.tDis || '-'}m</div>
-                    {s.penalty !== '-' && <div style={{ color: '#ef4444', fontSize: '0.7rem', fontWeight: 'bold' }}>{s.penalty === 'O' ? 'OB' : 'Hz'}</div>}
+                    <div className="mono" style={{ fontSize: '1rem', color: 'var(--accent-neon)' }}>{s.fDis || s.tDis || '-'}m</div>
+                    {s.memo && <div style={{ fontSize: '0.65rem', opacity: 0.6, maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.memo}</div>}
                   </div>
                 </div>
               ))}
