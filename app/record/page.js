@@ -122,6 +122,7 @@ export default function RecordRound() {
   const [dateDraft, setDateDraft] = useState('');
   const [showHoleSelectModal, setShowHoleSelectModal] = useState(false);
   const [showGreenModal, setShowGreenModal] = useState(false);
+  const [images, setImages] = useState([]); // 사진 메타데이터 보존용 상태 추가
 
   // DnD Sensors
   const sensors = useSensors(
@@ -174,6 +175,7 @@ export default function RecordRound() {
               if (localRound.date) setDate(new Date(localRound.date).toISOString().split("T")[0]);
               if (localRound.holes) setHoles(localRound.holes);
               if (localRound.lastHoleIdx !== undefined) setCurrentHoleIdx(localRound.lastHoleIdx);
+              if (localRound.images) setImages(localRound.images); // 기존 사진 정보 로드
               setStep('play');
               return;
             }
@@ -189,6 +191,7 @@ export default function RecordRound() {
               if (roundToEdit.date) setDate(new Date(roundToEdit.date).toISOString().split("T")[0]);
               if (roundToEdit.holes) setHoles(roundToEdit.holes);
               if (roundToEdit.lastHoleIdx !== undefined) setCurrentHoleIdx(roundToEdit.lastHoleIdx);
+              if (roundToEdit.images) setImages(roundToEdit.images); // 클라우드 사진 정보 로드
               setStep('play');
             } else {
               setStep('setup');
@@ -249,7 +252,8 @@ export default function RecordRound() {
       par: totalPar,
       putts: totalPutts,
       lastHoleIdx: currentHoleIdx,
-      holes: finalHoles
+      holes: finalHoles,
+      images: images // 사진 메타데이터 포함하여 저장
     };
     
     // Save to localStorage
