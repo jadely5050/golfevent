@@ -137,10 +137,11 @@ export default function Dashboard() {
 
   return (
     <div className="container" style={{ animation: 'fadeIn 0.5s ease-out', position: 'relative' }}>
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       `}} />
-      
+
       <div style={{ position: 'absolute', top: '-10px', right: '10px' }}>
         <button onClick={() => { setShowSyncModal(true); fetchServerRounds(); }} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>⚙️</button>
       </div>
@@ -163,7 +164,7 @@ export default function Dashboard() {
       </Link>
 
       <h3>최근 라운드 기록</h3>
-      
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {recentRounds.map((round) => (
           <Link key={round.id} href={`/record?id=${round.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -179,15 +180,7 @@ export default function Dashboard() {
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{round.putts} 퍼팅</div>
                 </div>
-                <Link href={`/dashboard?id=${round.id}`} onClick={(e) => e.stopPropagation()} style={{ textDecoration: 'none' }}>
-                  <button 
-                    style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '38px', height: '38px', color: 'var(--accent-neon)', fontWeight: 'bold' }}
-                    title="대시보드 보기"
-                  >
-                    D
-                  </button>
-                </Link>
-                <button 
+                <button
                   onClick={(e) => uploadRound(e, round)}
                   style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '38px', height: '38px' }}
                   title="서버로 업로드"
@@ -225,9 +218,20 @@ export default function Dashboard() {
                     <div style={{ fontWeight: '600' }}>{round.course}</div>
                     <div style={{ fontSize: '0.8rem' }}>Score: {round.score}</div>
                   </div>
-                  <button className="btn btn-secondary" onClick={() => importRound(round)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
-                    가져오기
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <Link href={`/dashboard?id=${round.id}&cloud=true`} onClick={(e) => e.stopPropagation()} style={{ textDecoration: 'none' }}>
+                      <button 
+                        className="btn btn-secondary"
+                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        title="클라우드 대시보드 보기"
+                      >
+                        Dashboard
+                      </button>
+                    </Link>
+                    <button className="btn btn-secondary" onClick={() => importRound(round)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
+                      가져오기
+                    </button>
+                  </div>
                 </div>
               ))}
               {serverRounds.length === 0 && !isLoading && <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>서버에 저장된 기록이 없습니다.</p>}
