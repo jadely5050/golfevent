@@ -220,101 +220,205 @@ function DashboardContent() {
     );
   };
 
+  const MobileHoleTable = ({ holesBlock }) => (
+    <div className="mobile-hole-table-container">
+      <table className="mobile-hole-table">
+        <thead>
+          <tr>
+            <th>HOLE</th>
+            {holesBlock.map(h => (
+              <th key={h.hole} className={`hole-header ${selectedHoleNum === h.hole ? 'active-hole' : ''}`} onClick={() => setSelectedHoleNum(h.hole)}>
+                {h.hole}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {metrics.map(m => (
+            <tr key={m.name}>
+              <td style={{ textAlign: 'left', paddingLeft: '0.5rem', fontWeight: 'bold', color: 'var(--text-secondary)', fontSize: '0.7rem' }}>{m.name}</td>
+              {holesBlock.map(h => {
+                const val = m.value !== undefined ? m.value : h[m.key];
+                return (
+                  <td
+                    key={h.hole}
+                    className={`mono ${m.getCellClass ? m.getCellClass(h) : ''} ${selectedHoleNum === h.hole ? 'active-hole' : ''}`}
+                    style={{
+                      color: m.getColor ? m.getColor(h) : (m.color || 'inherit'),
+                      fontWeight: m.bold === true || (typeof m.bold === 'function' && m.bold(h)) ? 'bold' : 'normal'
+                    }}
+                    onClick={() => setSelectedHoleNum(h.hole)}
+                  >
+                    {m.format ? m.format(val) : val}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div className="dashboard-container" style={{ animation: 'fadeIn 0.5s ease-out' }}>
-      {/* 상단 헤더 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingTop: '1rem' }}>
-        <Link href="/" style={{ textDecoration: 'none', color: 'var(--accent-neon)', fontWeight: 'bold', fontSize: '0.9rem' }}>← BACK</Link>
-        <div style={{ textAlign: 'right' }}>
-          <h1 style={{ margin: 0, fontSize: '1.2rem' }}>{round.course}</h1>
-          <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{round.date} | Score: {data.total.score} | Putts: {data.total.putts}</div>
+      
+      {/* PC VIEW */}
+      <div className="pc-only">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingTop: '1rem' }}>
+          <Link href="/" style={{ textDecoration: 'none', color: 'var(--accent-neon)', fontWeight: 'bold', fontSize: '0.9rem' }}>← BACK</Link>
+          <div style={{ textAlign: 'right' }}>
+            <h1 style={{ margin: 0, fontSize: '1.2rem' }}>{round.course}</h1>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{round.date} | Score: {data.total.score} | Putts: {data.total.putts}</div>
+          </div>
+        </div>
+
+        <div className="dashboard-layout">
+          <div className="table-section">
+            <div className="table-container" style={{ overflowX: 'auto' }}>
+              <table className="transposed-table">
+                <thead>
+                  <tr>
+                    <th className="metric-name">HOLE</th>
+                    {data.holes.slice(0, 9).map(h => (
+                      <th key={h.hole} className={`hole-num ${selectedHoleNum === h.hole ? 'active' : ''}`} onClick={() => setSelectedHoleNum(h.hole)}>{h.hole}</th>
+                    ))}
+                    <th className="subtotal">OUT</th>
+                    {data.holes.slice(9, 18).map(h => (
+                      <th key={h.hole} className={`hole-num ${selectedHoleNum === h.hole ? 'active' : ''}`} onClick={() => setSelectedHoleNum(h.hole)}>{h.hole}</th>
+                    ))}
+                    <th className="subtotal">IN</th>
+                    <th className="total-cell">TOT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {metrics.map(renderMetricRow)}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 요약 카드 (PC) */}
+            <div className="summary-grid" style={{ marginTop: '2rem' }}>
+              <div className="summary-card">
+                <h4>Score Dist</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', fontSize: '0.9rem' }}>
+                  <div>버디 : <span style={{ color: 'var(--accent-neon)' }}>{data.total.birdies}</span></div>
+                  <div>파 : <span style={{ color: 'var(--accent-neon)' }}>{data.total.pars}</span></div>
+                  <div>보기 : <span style={{ color: 'white' }}>{data.total.bogeys}</span></div>
+                  <div>더보 : <span style={{ color: 'white' }}>{data.total.doubleBogeys}</span></div>
+                  <div>3플보기 : <span style={{ color: 'white' }}>{data.total.triplePlus}</span></div>
+                  <div>양파 : <span style={{ color: 'var(--danger)' }}>{data.total.doublePars}</span></div>
+                </div>
+              </div>
+              <div className="summary-card">
+                <h4>Putting</h4>
+                <div className="summary-value">{data.total.threePutts} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>3-Putts</span></div>
+                <div className="summary-subtext">1-Putt/Chip: {data.total.onePutts}</div>
+              </div>
+              <div className="summary-card">
+                <h4>Shot Quality</h4>
+                <div className="summary-value">{data.total.tops} / {data.total.duffs}</div>
+                <div className="summary-subtext">Top / Duff (T/D logic)</div>
+              </div>
+              <div className="summary-card">
+                <h4>Max Drive</h4>
+                <div className="summary-value">{data.total.maxDrive}m</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 우측 상세 패널 (PC) */}
+          <div className="detail-section">
+            <div className="detail-panel">
+              <h3 style={{ color: 'var(--accent-neon)', marginBottom: '1.2rem', display: 'flex', justifyContent: 'space-between' }}>
+                Hole {selectedHole.hole}
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Par {selectedHole.par}</span>
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {selectedHole.shots.map((s, idx) => (
+                  <div key={idx} className="shot-card" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.5rem', fontSize: '0.75rem', overflow: 'hidden' }}>
+                    <div className="shot-card-header" style={{ margin: 0, minWidth: '22px', color: 'var(--accent-neon)' }}>#{idx + 1}</div>
+                    <div style={{ fontWeight: 'bold', minWidth: '32px' }}>{s.club}</div>
+                    <div style={{ opacity: 0.6, minWidth: '45px', whiteSpace: 'nowrap' }}>{s.shotType}</div>
+                    <div style={{ color: 'var(--text-secondary)', minWidth: '18px', textAlign: 'center' }}>{s.landing}</div>
+                    <div style={{ minWidth: '18px', textAlign: 'center', opacity: 0.8 }}>{s.distanceCtrl || ''}</div>
+                    <div style={{ minWidth: '22px', textAlign: 'center' }}>
+                      {(s.penalty === 'H' || s.penalty === 'O') ? <span className="penalty-text" style={{ fontSize: '0.65rem' }}>{s.penalty}</span> : ''}
+                    </div>
+                    <div className="mono" style={{ color: 'var(--accent-neon)', minWidth: '70px', textAlign: 'right', fontSize: '0.7rem' }}>
+                      {s.tDis || '-'}/{s.fDis || '-'}m
+                    </div>
+                    {s.memo && <div style={{ fontSize: '0.65rem', opacity: 0.5, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginLeft: '0.3rem' }}>{s.memo}</div>}
+                  </div>
+                ))}
+              </div>
+              <div className="yardage-placeholder">
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.5rem' }}>🗺️</div>
+                  <div style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>Yardage & Drawings</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="dashboard-layout">
-        <div className="table-section">
-          <div className="table-container" style={{ overflowX: 'auto' }}>
-            <table className="transposed-table">
-              <thead>
-                <tr>
-                  <th className="metric-name">HOLE</th>
-                  {data.holes.slice(0, 9).map(h => (
-                    <th key={h.hole} className={`hole-num ${selectedHoleNum === h.hole ? 'active' : ''}`} onClick={() => setSelectedHoleNum(h.hole)}>{h.hole}</th>
-                  ))}
-                  <th className="subtotal">OUT</th>
-                  {data.holes.slice(9, 18).map(h => (
-                    <th key={h.hole} className={`hole-num ${selectedHoleNum === h.hole ? 'active' : ''}`} onClick={() => setSelectedHoleNum(h.hole)}>{h.hole}</th>
-                  ))}
-                  <th className="subtotal">IN</th>
-                  <th className="total-cell">TOT</th>
-                </tr>
-              </thead>
-              <tbody>
-                {metrics.map(renderMetricRow)}
-              </tbody>
-            </table>
-          </div>
-
-          {/* 요약 카드 */}
-          <div className="summary-grid" style={{ marginTop: '2rem' }}>
-            <div className="summary-card">
-              <h4>Score Dist</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', fontSize: '0.9rem' }}>
-                <div>버디 : <span style={{ color: 'var(--accent-neon)' }}>{data.total.birdies}</span></div>
-                <div>파 : <span style={{ color: 'var(--accent-neon)' }}>{data.total.pars}</span></div>
-                <div>보기 : <span style={{ color: 'white' }}>{data.total.bogeys}</span></div>
-                <div>더보 : <span style={{ color: 'white' }}>{data.total.doubleBogeys}</span></div>
-                <div>3플보기 : <span style={{ color: 'white' }}>{data.total.triplePlus}</span></div>
-                <div>양파 : <span style={{ color: 'var(--danger)' }}>{data.total.doublePars}</span></div>
-              </div>
-            </div>
-            <div className="summary-card">
-              <h4>Putting</h4>
-              <div className="summary-value">{data.total.threePutts} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>3-Putts</span></div>
-              <div className="summary-subtext">1-Putt/Chip: {data.total.onePutts}</div>
-            </div>
-            <div className="summary-card">
-              <h4>Shot Quality</h4>
-              <div className="summary-value">{data.total.tops} / {data.total.duffs}</div>
-              <div className="summary-subtext">Top / Duff (T/D logic)</div>
-            </div>
-            <div className="summary-card">
-              <h4>Max Drive</h4>
-              <div className="summary-value">{data.total.maxDrive}m</div>
-            </div>
+      {/* MOBILE VIEW */}
+      <div className="mobile-only">
+        <div className="mobile-header">
+          <Link href="/" style={{ textDecoration: 'none', color: 'var(--accent-neon)', fontWeight: 'bold', fontSize: '0.8rem' }}>← BACK</Link>
+          <h1 style={{ marginTop: '0.5rem' }}>{round.course}</h1>
+          <div className="round-meta">
+            {round.date} | <span style={{ color: 'var(--accent-neon)' }}>Score: {data.total.score}</span> | Putts: {data.total.putts}
           </div>
         </div>
 
-        {/* 우측 상세 패널 */}
-        <div className="detail-section">
-          <div className="detail-panel">
-            <h3 style={{ color: 'var(--accent-neon)', marginBottom: '1.2rem', display: 'flex', justifyContent: 'space-between' }}>
-              Hole {selectedHole.hole}
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Par {selectedHole.par}</span>
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              {selectedHole.shots.map((s, idx) => (
-                <div key={idx} className="shot-card" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.5rem', fontSize: '0.75rem', overflow: 'hidden' }}>
-                  <div className="shot-card-header" style={{ margin: 0, minWidth: '22px', color: 'var(--accent-neon)' }}>#{idx + 1}</div>
-                  <div style={{ fontWeight: 'bold', minWidth: '32px' }}>{s.club}</div>
-                  <div style={{ opacity: 0.6, minWidth: '45px', whiteSpace: 'nowrap' }}>{s.shotType}</div>
-                  <div style={{ color: 'var(--text-secondary)', minWidth: '18px', textAlign: 'center' }}>{s.landing}</div>
-                  <div style={{ minWidth: '18px', textAlign: 'center', opacity: 0.8 }}>{s.distanceCtrl || ''}</div>
-                  <div style={{ minWidth: '22px', textAlign: 'center' }}>
-                    {(s.penalty === 'H' || s.penalty === 'O') ? <span className="penalty-text" style={{ fontSize: '0.65rem' }}>{s.penalty}</span> : ''}
-                  </div>
-                  <div className="mono" style={{ color: 'var(--accent-neon)', minWidth: '70px', textAlign: 'right', fontSize: '0.7rem' }}>
-                    {s.tDis || '-'}/{s.fDis || '-'}m
-                  </div>
-                  {s.memo && <div style={{ fontSize: '0.65rem', opacity: 0.5, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginLeft: '0.3rem' }}>{s.memo}</div>}
-                </div>
-              ))}
+        {/* 요약 카드 (Mobile) */}
+        <div className="mobile-summary-grid">
+          <div className="mobile-summary-card">
+            <h4>Score Dist</h4>
+            <div style={{ fontSize: '0.75rem' }}>
+              버디:{data.total.birdies} 파:{data.total.pars} 보기:{data.total.bogeys}
             </div>
-            <div className="yardage-placeholder">
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '1.5rem' }}>🗺️</div>
-                <div style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>Yardage & Drawings</div>
+          </div>
+          <div className="mobile-summary-card">
+            <h4>Putting</h4>
+            <div className="mobile-summary-value">{data.total.putts} <span style={{ fontSize: '0.7rem' }}>({data.total.threePutts} 3-Pts)</span></div>
+          </div>
+          <div className="mobile-summary-card">
+            <h4>Shot Quality</h4>
+            <div className="mobile-summary-value">{data.total.tops}T / {data.total.duffs}D</div>
+          </div>
+          <div className="mobile-summary-card">
+            <h4>Max Drive</h4>
+            <div className="mobile-summary-value">{data.total.maxDrive}m</div>
+          </div>
+        </div>
+
+        {/* 홀별 데이터 (Mobile) */}
+        <MobileHoleTable holesBlock={data.holes.slice(0, 9)} />
+        <MobileHoleTable holesBlock={data.holes.slice(9, 18)} />
+
+        {/* 홀 상세 패널 (Mobile) - 표 바로 아래 표출 */}
+        <div className="mobile-detail-panel">
+          <h3 style={{ color: 'var(--accent-neon)', fontSize: '1rem', marginBottom: '1rem' }}>
+            Hole {selectedHole.hole} (Par {selectedHole.par}) 상세
+          </h3>
+          <div className="mobile-shot-list">
+            {selectedHole.shots.map((s, idx) => (
+              <div key={idx} className="mobile-shot-card">
+                <div style={{ color: 'var(--accent-neon)', width: '1.2rem' }}>{idx + 1}</div>
+                <div style={{ fontWeight: 'bold', width: '1.8rem' }}>{s.club}</div>
+                <div style={{ color: 'var(--text-secondary)', flex: 1 }}>{s.shotType} → {s.landing}</div>
+                <div className="mono" style={{ color: 'var(--accent-neon)' }}>{s.fDis || s.tDis || '-'}m</div>
+                {s.penalty !== '-' && <div className="penalty-text">{s.penalty}</div>}
               </div>
+            ))}
+          </div>
+          <div className="yardage-placeholder" style={{ aspectRatio: '1/1', marginTop: '1rem' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '1.2rem' }}>🗺️</div>
+              <div style={{ fontSize: '0.7rem' }}>Yardage & Drawing</div>
             </div>
           </div>
         </div>
