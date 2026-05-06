@@ -104,9 +104,22 @@ export default function Dashboard() {
           return acc;
         }, {});
 
+        // [중요] 기존 이미지(이미 URL이 있는 것)와 신규 업로드된 이미지를 병합
+        // 새 기기에서 indexedDB가 비어있더라도 기존 images 내 URL들이 보존되도록 함
+        let finalImages = [...(round.images || [])];
+        
+        uploadedImages.forEach(upImg => {
+          const idx = finalImages.findIndex(img => img.id === upImg.id);
+          if (idx > -1) {
+            finalImages[idx] = upImg; // 정보 업데이트
+          } else {
+            finalImages.push(upImg); // 신규 추가
+          }
+        });
+
         const finalRoundData = {
           ...round,
-          images: uploadedImages,
+          images: finalImages,
           drawings: drawings
         };
 
