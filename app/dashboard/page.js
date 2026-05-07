@@ -401,8 +401,13 @@ function DashboardContent() {
         <div className="mobile-summary-grid">
           <div className="mobile-summary-card">
             <h4>Score Dist</h4>
-            <div style={{ fontSize: '0.75rem' }}>
-              버디:{data.total.birdies} 파:{data.total.pars} 보기:{data.total.bogeys}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.2rem', fontSize: '0.7rem' }}>
+              <div>버디:{data.total.birdies}</div>
+              <div>파:{data.total.pars}</div>
+              <div>보기:{data.total.bogeys}</div>
+              <div>더보:{data.total.doubleBogeys}</div>
+              <div>3플:{data.total.triplePlus}</div>
+              <div>양파:{data.total.doublePars}</div>
             </div>
           </div>
           <div className="mobile-summary-card">
