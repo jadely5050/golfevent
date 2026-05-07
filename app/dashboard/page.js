@@ -458,7 +458,7 @@ function DashboardContent() {
                   <div key={idx} className="mobile-shot-card" style={{ marginBottom: '0.5rem' }}>
                     <div style={{ color: 'var(--accent-neon)', width: '1.2rem', fontWeight: 'bold' }}>{idx + 1}</div>
                     <div style={{ fontWeight: 'bold', width: '1.8rem' }}>{s.club}</div>
-                    <div style={{ color: 'var(--text-secondary)', flex: 1, fontSize: '0.75rem' }}>{s.shotType} → {s.landing}</div>
+                    <div style={{ color: 'var(--text-secondary)', flex: 1, fontSize: '0.75rem' }}>{s.shotType} {s.landing}</div>
                     <div className="mono" style={{ color: 'var(--accent-neon)', fontSize: '0.8rem' }}>{s.fDis || s.tDis || '-'}m</div>
                     {s.penalty !== '-' && <div className="penalty-text" style={{ marginLeft: '0.4rem', fontSize: '0.7rem' }}>{s.penalty}</div>}
                   </div>
