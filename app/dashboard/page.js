@@ -10,6 +10,7 @@ function DashboardContent() {
   const isCloud = searchParams.get('cloud') === 'true';
   const [round, setRound] = useState(null);
   const [selectedHoleNum, setSelectedHoleNum] = useState(1);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(isCloud);
 
   useEffect(() => {
@@ -187,7 +188,11 @@ function DashboardContent() {
                 cursor: 'pointer',
                 background: selectedHoleNum === h.hole ? 'rgba(16, 185, 129, 0.1)' : 'transparent'
               }}
-              onClick={() => setSelectedHoleNum(h.hole)}
+                onClick={() => {
+                  setSelectedHoleNum(h.hole);
+                  // PC에서도 모달을 띄우고 싶다면 주석 해제 (현재는 모바일만 요청됨)
+                  // setIsDetailModalOpen(true);
+                }}
             >
               {m.format ? m.format(val) : val}
             </td>
@@ -208,7 +213,11 @@ function DashboardContent() {
                 cursor: 'pointer',
                 background: selectedHoleNum === h.hole ? 'rgba(16, 185, 129, 0.1)' : 'transparent'
               }}
-              onClick={() => setSelectedHoleNum(h.hole)}
+                onClick={() => {
+                  setSelectedHoleNum(h.hole);
+                  // PC에서도 모달을 띄우고 싶다면 주석 해제
+                  // setIsDetailModalOpen(true);
+                }}
             >
               {m.format ? m.format(val) : val}
             </td>
@@ -220,45 +229,56 @@ function DashboardContent() {
     );
   };
 
-  const MobileHoleTable = ({ holesBlock }) => (
-    <div className="mobile-hole-table-container">
-      <table className="mobile-hole-table">
-        <thead>
-          <tr>
-            <th>HOLE</th>
-            {holesBlock.map(h => (
-              <th key={h.hole} className={`hole-header ${selectedHoleNum === h.hole ? 'active-hole' : ''}`} onClick={() => setSelectedHoleNum(h.hole)}>
-                {h.hole}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {metrics.map(m => (
-            <tr key={m.name}>
-              <td style={{ textAlign: 'left', paddingLeft: '0.5rem', fontWeight: 'bold', color: 'var(--text-secondary)', fontSize: '0.7rem' }}>{m.name}</td>
-              {holesBlock.map(h => {
-                const val = m.value !== undefined ? m.value : h[m.key];
-                return (
-                  <td
-                    key={h.hole}
-                    className={`mono ${m.getCellClass ? m.getCellClass(h) : ''} ${selectedHoleNum === h.hole ? 'active-hole' : ''}`}
-                    style={{
-                      color: m.getColor ? m.getColor(h) : (m.color || 'inherit'),
-                      fontWeight: m.bold === true || (typeof m.bold === 'function' && m.bold(h)) ? 'bold' : 'normal'
-                    }}
-                    onClick={() => setSelectedHoleNum(h.hole)}
-                  >
-                    {m.format ? m.format(val) : val}
-                  </td>
-                );
-              })}
+  const MobileHoleTable = ({ holesBlock }) => {
+    const hiddenMetrics = ['T-Club', 'HDCP', 'F/W', 'GIR', 'Memo'];
+    const filteredMetrics = metrics.filter(m => !hiddenMetrics.includes(m.name));
+
+    return (
+      <div className="mobile-hole-table-container">
+        <table className="mobile-hole-table">
+          <thead>
+            <tr>
+              <th>HOLE</th>
+              {holesBlock.map(h => (
+                <th key={h.hole} className={`hole-header ${selectedHoleNum === h.hole ? 'active-hole' : ''}`} onClick={() => {
+                  setSelectedHoleNum(h.hole);
+                  setIsDetailModalOpen(true);
+                }}>
+                  {h.hole}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+          </thead>
+          <tbody>
+            {filteredMetrics.map(m => (
+              <tr key={m.name}>
+                <td style={{ textAlign: 'left', paddingLeft: '0.5rem', fontWeight: 'bold', color: 'var(--text-secondary)', fontSize: '0.7rem' }}>{m.name}</td>
+                {holesBlock.map(h => {
+                  const val = m.value !== undefined ? m.value : h[m.key];
+                  return (
+                    <td
+                      key={h.hole}
+                      className={`mono ${m.getCellClass ? m.getCellClass(h) : ''} ${selectedHoleNum === h.hole ? 'active-hole' : ''}`}
+                      style={{
+                        color: m.getColor ? m.getColor(h) : (m.color || 'inherit'),
+                        fontWeight: m.bold === true || (typeof m.bold === 'function' && m.bold(h)) ? 'bold' : 'normal'
+                      }}
+                      onClick={() => {
+                      setSelectedHoleNum(h.hole);
+                      setIsDetailModalOpen(true);
+                    }}
+                    >
+                      {m.format ? m.format(val) : val}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   return (
     <div className="dashboard-container" style={{ animation: 'fadeIn 0.5s ease-out' }}>
@@ -281,11 +301,15 @@ function DashboardContent() {
                   <tr>
                     <th className="metric-name">HOLE</th>
                     {data.holes.slice(0, 9).map(h => (
-                      <th key={h.hole} className={`hole-num ${selectedHoleNum === h.hole ? 'active' : ''}`} onClick={() => setSelectedHoleNum(h.hole)}>{h.hole}</th>
+                      <th key={h.hole} className={`hole-num ${selectedHoleNum === h.hole ? 'active' : ''}`} onClick={() => {
+                        setSelectedHoleNum(h.hole);
+                      }}>{h.hole}</th>
                     ))}
                     <th className="subtotal">OUT</th>
                     {data.holes.slice(9, 18).map(h => (
-                      <th key={h.hole} className={`hole-num ${selectedHoleNum === h.hole ? 'active' : ''}`} onClick={() => setSelectedHoleNum(h.hole)}>{h.hole}</th>
+                      <th key={h.hole} className={`hole-num ${selectedHoleNum === h.hole ? 'active' : ''}`} onClick={() => {
+                        setSelectedHoleNum(h.hole);
+                      }}>{h.hole}</th>
                     ))}
                     <th className="subtotal">IN</th>
                     <th className="total-cell">TOT</th>
@@ -399,29 +423,60 @@ function DashboardContent() {
         <MobileHoleTable holesBlock={data.holes.slice(0, 9)} />
         <MobileHoleTable holesBlock={data.holes.slice(9, 18)} />
 
-        {/* 홀 상세 패널 (Mobile) - 표 바로 아래 표출 */}
-        <div className="mobile-detail-panel">
-          <h3 style={{ color: 'var(--accent-neon)', fontSize: '1rem', marginBottom: '1rem' }}>
-            Hole {selectedHole.hole} (Par {selectedHole.par}) 상세
-          </h3>
-          <div className="mobile-shot-list">
-            {selectedHole.shots.map((s, idx) => (
-              <div key={idx} className="mobile-shot-card">
-                <div style={{ color: 'var(--accent-neon)', width: '1.2rem' }}>{idx + 1}</div>
-                <div style={{ fontWeight: 'bold', width: '1.8rem' }}>{s.club}</div>
-                <div style={{ color: 'var(--text-secondary)', flex: 1 }}>{s.shotType} → {s.landing}</div>
-                <div className="mono" style={{ color: 'var(--accent-neon)' }}>{s.fDis || s.tDis || '-'}m</div>
-                {s.penalty !== '-' && <div className="penalty-text">{s.penalty}</div>}
+        {/* 홀 상세 모달 (Mobile) */}
+        {isDetailModalOpen && (
+          <div className="modal-overlay" onClick={() => setIsDetailModalOpen(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ border: '1px solid var(--accent-neon)', position: 'relative' }}>
+              <button 
+                onClick={() => setIsDetailModalOpen(false)}
+                style={{
+                  position: 'absolute',
+                  top: '1rem',
+                  right: '1rem',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  zIndex: 10
+                }}
+              >
+                ×
+              </button>
+              
+              <h3 style={{ color: 'var(--accent-neon)', fontSize: '1.1rem', marginBottom: '1.2rem', paddingRight: '2rem' }}>
+                Hole {selectedHole.hole} (Par {selectedHole.par}) 상세
+              </h3>
+              
+              <div className="mobile-shot-list" style={{ maxHeight: '40vh', overflowY: 'auto' }}>
+                {selectedHole.shots.map((s, idx) => (
+                  <div key={idx} className="mobile-shot-card" style={{ marginBottom: '0.5rem' }}>
+                    <div style={{ color: 'var(--accent-neon)', width: '1.2rem', fontWeight: 'bold' }}>{idx + 1}</div>
+                    <div style={{ fontWeight: 'bold', width: '1.8rem' }}>{s.club}</div>
+                    <div style={{ color: 'var(--text-secondary)', flex: 1, fontSize: '0.75rem' }}>{s.shotType} → {s.landing}</div>
+                    <div className="mono" style={{ color: 'var(--accent-neon)', fontSize: '0.8rem' }}>{s.fDis || s.tDis || '-'}m</div>
+                    {s.penalty !== '-' && <div className="penalty-text" style={{ marginLeft: '0.4rem', fontSize: '0.7rem' }}>{s.penalty}</div>}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="yardage-placeholder" style={{ aspectRatio: '1/1', marginTop: '1rem' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '1.2rem' }}>🗺️</div>
-              <div style={{ fontSize: '0.7rem' }}>Yardage & Drawing</div>
+              
+              <div className="yardage-placeholder" style={{ aspectRatio: '1/1', marginTop: '1rem', height: '200px', margin: '1rem auto' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.5rem' }}>🗺️</div>
+                  <div style={{ fontSize: '0.7rem', marginTop: '0.5rem' }}>Yardage & Drawing</div>
+                </div>
+              </div>
+
+              <button 
+                className="btn btn-primary" 
+                style={{ marginTop: '1rem', width: '100%' }}
+                onClick={() => setIsDetailModalOpen(false)}
+              >
+                닫기
+              </button>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       <style dangerouslySetInnerHTML={{
