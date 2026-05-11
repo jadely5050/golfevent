@@ -9,6 +9,7 @@ async function initDB() {
       title TEXT,
       date DATE,
       course TEXT,
+      course_id TEXT,
       score INTEGER,
       par INTEGER,
       putts INTEGER,
@@ -24,6 +25,7 @@ async function initDB() {
     await sql`ALTER TABLE golf_rounds ADD COLUMN IF NOT EXISTS images_data JSONB;`;
     await sql`ALTER TABLE golf_rounds ADD COLUMN IF NOT EXISTS drawings_data JSONB;`;
     await sql`ALTER TABLE golf_rounds ADD COLUMN IF NOT EXISTS title TEXT;`;
+    await sql`ALTER TABLE golf_rounds ADD COLUMN IF NOT EXISTS course_id TEXT;`;
   } catch (err) {
     console.log('Column initialization info:', err.message);
   }
@@ -34,7 +36,7 @@ export async function GET() {
     await initDB();
     const { rows } = await sql`
       SELECT 
-        id, title, date, course, score, par, putts, 
+        id, title, date, course, course_id, score, par, putts, 
         holes_data as holes, 
         images_data as images, 
         drawings_data as drawings 
@@ -52,7 +54,7 @@ export async function POST(request) {
   try {
     await initDB();
     const body = await request.json();
-    const { id, title, date, course, score, par, putts, holes, images, drawings } = body;
+    const { id, title, date, course, courseId, score, par, putts, holes, images, drawings } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Missing round ID' }, { status: 400 });
@@ -63,12 +65,13 @@ export async function POST(request) {
     const drawingsJson = JSON.stringify(drawings || {});
 
     await sql`
-      INSERT INTO golf_rounds (id, title, date, course, score, par, putts, holes_data, images_data, drawings_data)
+      INSERT INTO golf_rounds (id, title, date, course, course_id, score, par, putts, holes_data, images_data, drawings_data)
       VALUES (
         ${id}, 
         ${title || ''},
         ${date}, 
         ${course}, 
+        ${courseId || ''},
         ${score}, 
         ${par}, 
         ${putts}, 
@@ -80,6 +83,7 @@ export async function POST(request) {
         title = EXCLUDED.title,
         date = EXCLUDED.date,
         course = EXCLUDED.course,
+        course_id = EXCLUDED.course_id,
         score = EXCLUDED.score,
         par = EXCLUDED.par,
         putts = EXCLUDED.putts,

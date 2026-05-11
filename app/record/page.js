@@ -197,6 +197,7 @@ export default function RecordRound() {
             const localRound = parsed.find(r => r.id === editId);
             if (localRound) {
               setCourse(localRound.course);
+              setSelectedCourseId(localRound.courseId || '');
               setRoundTitle(localRound.title || '');
               if (localRound.date) setDate(new Date(localRound.date).toISOString().split("T")[0]);
               if (localRound.holes) setHoles(localRound.holes);
@@ -214,6 +215,7 @@ export default function RecordRound() {
             const roundToEdit = rounds.find(r => r.id === editId);
             if (roundToEdit) {
               setCourse(roundToEdit.course);
+              setSelectedCourseId(roundToEdit.course_id || '');
               setRoundTitle(roundToEdit.title || '');
               if (roundToEdit.date) setDate(new Date(roundToEdit.date).toISOString().split("T")[0]);
               if (roundToEdit.holes) setHoles(roundToEdit.holes);
@@ -277,6 +279,7 @@ export default function RecordRound() {
       title: roundTitle,
       date,
       course,
+      courseId: selectedCourseId,
       score: totalScore,
       par: totalPar,
       putts: totalPutts,
@@ -297,7 +300,7 @@ export default function RecordRound() {
     if (step === 'play') {
       saveCurrentRound();
     }
-  }, [holes, course, roundTitle, date, step, currentRoundId, currentHoleIdx]);
+  }, [holes, course, roundTitle, date, step, currentRoundId, currentHoleIdx, selectedCourseId]);
 
   const handleFinish = () => {
     saveCurrentRound();
