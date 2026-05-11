@@ -96,6 +96,7 @@ export default function RecordRound() {
   
   // Round Info
   const [course, setCourse] = useState('');
+  const [roundTitle, setRoundTitle] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   
   // Holes state (1-18)
@@ -119,10 +120,19 @@ export default function RecordRound() {
   const [showParSettingsModal, setShowParSettingsModal] = useState(false);
   const [parDraft, setParDraft] = useState(Array(18).fill(4));
   const [courseDraft, setCourseDraft] = useState('');
+  const [roundTitleDraft, setRoundTitleDraft] = useState('');
   const [dateDraft, setDateDraft] = useState('');
   const [showHoleSelectModal, setShowHoleSelectModal] = useState(false);
   const [showGreenModal, setShowGreenModal] = useState(false);
   const [images, setImages] = useState([]); // 사진 메타데이터 보존용 상태 추가
+  const [courses, setCourses] = useState([]);
+  const [selectedCourseId, setSelectedCourseId] = useState('');
+  const [showAddCourseModal, setShowAddCourseModal] = useState(false);
+  const [newCourseName, setNewCourseName] = useState('');
+  const [yardageFiles, setYardageFiles] = useState([]);
+  const [greenFiles, setGreenFiles] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // DnD Sensors
   const sensors = useSensors(
@@ -159,7 +169,22 @@ export default function RecordRound() {
       const gImg = new Image();
       gImg.src = `/g${i}.jpg`;
     }
+
+    // Fetch available courses
+    fetchCourses();
   }, []);
+
+  const fetchCourses = async () => {
+    try {
+      const res = await fetch('/api/courses');
+      if (res.ok) {
+        const data = await res.json();
+        setCourses(data);
+      }
+    } catch (err) {
+      console.error('Fetch courses error:', err);
+    }
+  };
 
   useEffect(() => {
     if (editId) {
@@ -172,6 +197,7 @@ export default function RecordRound() {
             const localRound = parsed.find(r => r.id === editId);
             if (localRound) {
               setCourse(localRound.course);
+              setRoundTitle(localRound.title || '');
               if (localRound.date) setDate(new Date(localRound.date).toISOString().split("T")[0]);
               if (localRound.holes) setHoles(localRound.holes);
               if (localRound.lastHoleIdx !== undefined) setCurrentHoleIdx(localRound.lastHoleIdx);
@@ -188,6 +214,7 @@ export default function RecordRound() {
             const roundToEdit = rounds.find(r => r.id === editId);
             if (roundToEdit) {
               setCourse(roundToEdit.course);
+              setRoundTitle(roundToEdit.title || '');
               if (roundToEdit.date) setDate(new Date(roundToEdit.date).toISOString().split("T")[0]);
               if (roundToEdit.holes) setHoles(roundToEdit.holes);
               if (roundToEdit.lastHoleIdx !== undefined) setCurrentHoleIdx(roundToEdit.lastHoleIdx);
@@ -230,6 +257,7 @@ export default function RecordRound() {
 
   const handleStart = () => {
     if (!course) return alert('골프장 이름을 입력해주세요.');
+    if (!roundTitle) return alert('라운드 명칭을 입력해주세요.');
     setStep('play');
   };
 
@@ -246,6 +274,7 @@ export default function RecordRound() {
 
     const roundData = {
       id: currentRoundId,
+      title: roundTitle,
       date,
       course,
       score: totalScore,
@@ -268,7 +297,7 @@ export default function RecordRound() {
     if (step === 'play') {
       saveCurrentRound();
     }
-  }, [holes, course, date, step, currentRoundId, currentHoleIdx]);
+  }, [holes, course, roundTitle, date, step, currentRoundId, currentHoleIdx]);
 
   const handleFinish = () => {
     saveCurrentRound();
@@ -394,6 +423,89 @@ export default function RecordRound() {
     }
   };
 
+  const handleUploadCourse = async () => {
+    if (!newCourseName) return alert('코스명을 입력해주세요.');
+    if (yardageFiles.length !== 18) return alert('야디지 이미지를 18장 선택해주세요.');
+    if (greenFiles.length !== 18) return alert('그린 이미지를 18장 선택해주세요.');
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const courseId = newCourseName.trim();
+      const yardageUrls = [];
+      const greenUrls = [];
+
+      // 1. 야디지 이미지 업로드
+      for (let i = 0; i < 18; i++) {
+        setUploadProgress(i + 1);
+        const file = yardageFiles[i];
+        const compressed = await compressImage(file, { maxWidth: 1280, quality: 0.8 });
+        
+        const formData = new FormData();
+        formData.append('file', compressed);
+        formData.append('fileName', `${i + 1}.jpg`);
+        formData.append('path', `yardage/${courseId}/course`);
+
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        yardageUrls.push(`/api/image?key=${data.key}`);
+      }
+
+      // 2. 그린 이미지 업로드
+      for (let i = 0; i < 18; i++) {
+        setUploadProgress(18 + i + 1);
+        const file = greenFiles[i];
+        const compressed = await compressImage(file, { maxWidth: 1024, quality: 0.8 });
+        
+        const formData = new FormData();
+        formData.append('file', compressed);
+        formData.append('fileName', `${i + 1}.jpg`);
+        formData.append('path', `yardage/${courseId}/green`);
+
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        greenUrls.push(`/api/image?key=${data.key}`);
+      }
+
+      // 3. DB 저장
+      const res = await fetch('/api/courses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: courseId,
+          name: newCourseName,
+          yardage_images: yardageUrls,
+          green_images: greenUrls
+        })
+      });
+
+      if (res.ok) {
+        alert('코스가 성공적으로 등록되었습니다.');
+        fetchCourses();
+        setShowAddCourseModal(false);
+        setNewCourseName('');
+        setYardageFiles([]);
+        setGreenFiles([]);
+      } else {
+        const error = await res.json();
+        alert(`저장 실패: ${error.error}`);
+      }
+    } catch (err) {
+      console.error('Upload course error:', err);
+      alert('업로드 중 오류가 발생했습니다.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileSelect = (e, setFiles) => {
+    const selectedFiles = Array.from(e.target.files);
+    // 파일명 순으로 정렬
+    selectedFiles.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    setFiles(selectedFiles);
+  };
+
 
   if (step === 'loading') {
     return (
@@ -421,14 +533,47 @@ export default function RecordRound() {
             `}} />
             <h2>라운드 기본 정보</h2>
             <div className="form-group">
-              <label className="form-label">골프장 (코스명)</label>
+              <label className="form-label">라운드 명칭 (예: 2024 동호회 정기라운드)</label>
               <input 
                 type="text" 
                 className="form-input" 
-                placeholder="예: 클럽72 오션코스"
-                value={course}
-                onChange={(e) => setCourse(e.target.value)}
+                placeholder="라운드 이름을 입력하세요"
+                value={roundTitle}
+                onChange={(e) => setRoundTitle(e.target.value)}
               />
+            </div>
+            <div className="form-group">
+              <label className="form-label">골프장 (코스명)</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <select 
+                  className="form-input" 
+                  value={selectedCourseId} 
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setSelectedCourseId(id);
+                    const c = courses.find(item => item.id === id);
+                    if (c) setCourse(c.name);
+                    else setCourse(id);
+                  }}
+                  style={{ flex: 1 }}
+                >
+                  <option value="">기본 (직접 입력)</option>
+                  {courses.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.5rem' }} onClick={() => setShowAddCourseModal(true)}>+</button>
+              </div>
+              {!selectedCourseId && (
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="예: 클럽72 오션코스"
+                  value={course}
+                  onChange={(e) => setCourse(e.target.value)}
+                  style={{ marginTop: '0.5rem' }}
+                />
+              )}
             </div>
             <div className="form-group">
               <label className="form-label">날짜</label>
@@ -462,6 +607,7 @@ export default function RecordRound() {
 
   const openParSettings = () => {
     setCourseDraft(course);
+    setRoundTitleDraft(roundTitle);
     setDateDraft(date);
     setParDraft(holes.map(h => h.par));
     setShowParSettingsModal(true);
@@ -469,6 +615,7 @@ export default function RecordRound() {
 
   const saveParSettings = () => {
     setCourse(courseDraft);
+    setRoundTitle(roundTitleDraft);
     setDate(dateDraft);
     const newHoles = [...holes];
     parDraft.forEach((p, i) => {
@@ -504,6 +651,7 @@ export default function RecordRound() {
           drawingData={currentHole.drawings} 
           obCount={totalObCount}
           hazardCount={totalHazardCount}
+          imageUrl={courses.find(c => c.id === selectedCourseId)?.yardage_images?.[currentHoleIdx]}
           onSave={(data) => {
             const newHoles = [...holes];
             newHoles[currentHoleIdx] = { ...newHoles[currentHoleIdx], drawings: data };
@@ -516,7 +664,10 @@ export default function RecordRound() {
       <div className="round-info-panel">
         <div className="glass-panel" style={{ padding: '0.75rem', marginBottom: '0', borderRadius: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>{course}</h3>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>{roundTitle}</h3>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{course}</div>
+            </div>
             <button onClick={openParSettings} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: 0 }}>⚙️</button>
           </div>
           <div style={{ color: 'white', fontSize: '0.9rem', marginTop: '0.25rem' }}>
@@ -638,7 +789,7 @@ export default function RecordRound() {
         >
           <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>GREEN</div>
           <img 
-            src={`/g${currentHole.hole}.jpg`} 
+            src={courses.find(c => c.id === selectedCourseId)?.green_images?.[currentHoleIdx] || `/g${currentHole.hole}.jpg`} 
             alt="Green Preview" 
             style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '10px' }}
           />
@@ -767,14 +918,47 @@ export default function RecordRound() {
             <h3 style={{ marginTop: 0, color: 'var(--accent-neon)' }}>라운드 설정</h3>
             
             <div className="form-group" style={{ marginBottom: '1rem' }}>
-              <label className="form-label" style={{ fontSize: '0.8rem' }}>골프장 (코스명)</label>
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>라운드 명칭</label>
               <input 
                 type="text" 
                 className="form-input" 
-                value={courseDraft}
-                onChange={(e) => setCourseDraft(e.target.value)}
+                value={roundTitleDraft}
+                onChange={(e) => setRoundTitleDraft(e.target.value)}
                 style={{ padding: '0.5rem', fontSize: '0.9rem' }}
               />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label className="form-label" style={{ fontSize: '0.8rem' }}>골프장 (코스명)</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <select 
+                  className="form-input" 
+                  value={selectedCourseId} 
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setSelectedCourseId(id);
+                    const c = courses.find(item => item.id === id);
+                    if (c) setCourseDraft(c.name);
+                    else setCourseDraft(id);
+                  }}
+                  style={{ flex: 1, padding: '0.5rem', fontSize: '0.9rem' }}
+                >
+                  <option value="">기본 (직접 입력)</option>
+                  {courses.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.5rem' }} onClick={() => setShowAddCourseModal(true)}>+</button>
+              </div>
+              {!selectedCourseId && (
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={courseDraft}
+                  onChange={(e) => setCourseDraft(e.target.value)}
+                  style={{ padding: '0.5rem', fontSize: '0.9rem', marginTop: '0.5rem' }}
+                />
+              )}
             </div>
             
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
@@ -922,7 +1106,7 @@ export default function RecordRound() {
             <YardageDrawingBoard 
               holeNumber={currentHole.hole}
               mode="green"
-              imageUrl={`/g${currentHole.hole}.jpg`}
+              imageUrl={courses.find(c => c.id === selectedCourseId)?.green_images?.[currentHoleIdx] || `/g${currentHole.hole}.jpg`}
               drawingData={currentHole.greenDrawings}
               onSave={(data) => {
                 const newHoles = [...holes];
@@ -930,6 +1114,75 @@ export default function RecordRound() {
                 setHoles(newHoles);
               }}
             />
+          </div>
+        </div>
+      )}
+      {showAddCourseModal && (
+        <div className="modal-overlay" onClick={() => !isUploading && setShowAddCourseModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <h3 style={{ marginTop: 0, color: 'var(--accent-neon)' }}>새 코스 추가</h3>
+            
+            <div className="form-group">
+              <label className="form-label">코스명</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                value={newCourseName}
+                onChange={(e) => setNewCourseName(e.target.value)}
+                placeholder="예: 클럽72 오션코스"
+                disabled={isUploading}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">야디지 이미지 (18장)</label>
+              <input 
+                type="file" 
+                multiple 
+                accept="image/*"
+                onChange={(e) => handleFileSelect(e, setYardageFiles)}
+                disabled={isUploading}
+                className="form-input"
+              />
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                선택됨: {yardageFiles.length} / 18
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">그린 이미지 (18장)</label>
+              <input 
+                type="file" 
+                multiple 
+                accept="image/*"
+                onChange={(e) => handleFileSelect(e, setGreenFiles)}
+                disabled={isUploading}
+                className="form-input"
+              />
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                선택됨: {greenFiles.length} / 18
+              </div>
+            </div>
+
+            {isUploading && (
+              <div style={{ margin: '1rem 0', textAlign: 'center' }}>
+                <div style={{ marginBottom: '0.5rem', color: 'var(--accent-neon)' }}>
+                  업로드 중... ({uploadProgress}/36)
+                </div>
+                <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ width: `${(uploadProgress / 36) * 100}%`, height: '100%', background: 'var(--accent-neon)', transition: 'width 0.3s' }}></div>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+              <button className="btn btn-secondary" onClick={() => setShowAddCourseModal(false)} disabled={isUploading}>
+                취소
+              </button>
+              <button className="btn btn-primary" onClick={handleUploadCourse} disabled={isUploading}>
+                업로드 및 등록
+              </button>
+            </div>
           </div>
         </div>
       )}
