@@ -310,7 +310,7 @@ export default function YardageDrawingBoard({
             ref={imageRef}
             src={imageUrl || `/${holeNumber}h.jpg`} 
             alt={mode === 'green' ? `Green ${holeNumber}` : `Hole ${holeNumber}`} 
-            style={{ height: '80%', width: 'auto', pointerEvents: 'none', userSelect: 'none' }}
+            style={{ height: '90%', width: 'auto', pointerEvents: 'none', userSelect: 'none' }}
             onLoad={handleResize}
             onError={(e) => e.target.style.display = 'none'}
           />
