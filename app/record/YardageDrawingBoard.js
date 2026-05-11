@@ -301,14 +301,20 @@ export default function YardageDrawingBoard({
           justifyContent: 'flex-start'
         }}
       >
-        <img 
-          ref={imageRef}
-          src={imageUrl || `/${holeNumber}h.jpg`} 
-          alt={mode === 'green' ? `Green ${holeNumber}` : `Hole ${holeNumber}`} 
-          style={{ height: '100%', width: 'auto', pointerEvents: 'none', userSelect: 'none' }}
-          onLoad={handleResize}
-          onError={(e) => e.target.style.display = 'none'}
-        />
+        {imageUrl === 'loading' ? (
+          <div style={{ height: '100%', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)' }}>
+            <div className="loader" style={{ width: '20px', height: '20px', border: '2px solid rgba(255,255,255,0.1)', borderTop: '2px solid var(--accent-neon)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+          </div>
+        ) : (
+          <img 
+            ref={imageRef}
+            src={imageUrl || `/${holeNumber}h.jpg`} 
+            alt={mode === 'green' ? `Green ${holeNumber}` : `Hole ${holeNumber}`} 
+            style={{ height: '100%', width: 'auto', pointerEvents: 'none', userSelect: 'none' }}
+            onLoad={handleResize}
+            onError={(e) => e.target.style.display = 'none'}
+          />
+        )}
         
         {drawings.markers.map(marker => (
           <div 

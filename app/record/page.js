@@ -180,16 +180,21 @@ export default function RecordRound() {
       if (res.ok) {
         const data = await res.json();
         setCourses(data);
+        return data;
       }
     } catch (err) {
       console.error('Fetch courses error:', err);
     }
+    return [];
   };
 
   useEffect(() => {
     if (editId) {
       const fetchRoundToEdit = async () => {
         try {
+          // 코스 목록 먼저 불러오기 (이미지 깜빡임 방지)
+          await fetchCourses();
+          
           // 로컬 데이터 먼저 확인
           const saved = localStorage.getItem('golf-rounds');
           if (saved) {
@@ -654,7 +659,7 @@ export default function RecordRound() {
           drawingData={currentHole.drawings} 
           obCount={totalObCount}
           hazardCount={totalHazardCount}
-          imageUrl={courses.find(c => c.id === selectedCourseId)?.yardage_images?.[currentHoleIdx]}
+          imageUrl={selectedCourseId && courses.length === 0 ? 'loading' : courses.find(c => c.id === selectedCourseId)?.yardage_images?.[currentHoleIdx]}
           onSave={(data) => {
             const newHoles = [...holes];
             newHoles[currentHoleIdx] = { ...newHoles[currentHoleIdx], drawings: data };
@@ -1109,7 +1114,7 @@ export default function RecordRound() {
             <YardageDrawingBoard 
               holeNumber={currentHole.hole}
               mode="green"
-              imageUrl={courses.find(c => c.id === selectedCourseId)?.green_images?.[currentHoleIdx] || `/g${currentHole.hole}.jpg`}
+              imageUrl={selectedCourseId && courses.length === 0 ? 'loading' : (courses.find(c => c.id === selectedCourseId)?.green_images?.[currentHoleIdx] || `/g${currentHole.hole}.jpg`)}
               drawingData={currentHole.greenDrawings}
               onSave={(data) => {
                 const newHoles = [...holes];
