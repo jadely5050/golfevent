@@ -12,6 +12,14 @@ const s3Client = new S3Client({
 
 export async function GET(request) {
   try {
+    // 환경 변수 확인
+    if (!process.env.R2_ENDPOINT || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_BUCKET_NAME) {
+      return NextResponse.json({ 
+        error: 'Configuration missing', 
+        details: 'R2 environment variables are not set in Vercel settings.' 
+      }, { status: 500 });
+    }
+
     const { searchParams } = new URL(request.url);
     const key = searchParams.get('key');
 
@@ -25,18 +33,12 @@ export async function GET(request) {
     });
 
     const response = await s3Client.send(command);
-    const stream = response.Body;
-
-    // ReadableStream을 Uint8Array로 변환
-    const chunks = [];
-    for await (const chunk of stream) {
-      chunks.push(chunk);
-    }
-    const buffer = Buffer.concat(chunks);
-
+    
+    // SDK v3의 편리한 변환 메서드 사용
+    const byteArray = await response.Body.transformToByteArray();
     const contentType = response.ContentType || 'image/jpeg';
 
-    return new NextResponse(buffer, {
+    return new NextResponse(byteArray, {
       status: 200,
       headers: {
         'Content-Type': contentType,
@@ -45,6 +47,10 @@ export async function GET(request) {
     });
   } catch (error) {
     console.error('Image proxy error:', error);
-    return NextResponse.json({ error: 'Image not found', details: error.message }, { status: 404 });
+    return NextResponse.json({ 
+      error: 'Image not found or R2 error', 
+      details: error.message,
+      key: request.nextUrl.searchParams.get('key')
+    }, { status: 404 });
   }
 }
