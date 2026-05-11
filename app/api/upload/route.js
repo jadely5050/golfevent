@@ -15,6 +15,7 @@ export async function POST(request) {
     const formData = await request.formData();
     const file = formData.get('file');
     const fileName = formData.get('fileName');
+    const path = formData.get('path') || 'uploads';
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -22,7 +23,9 @@ export async function POST(request) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const contentType = file.type || 'image/jpeg';
-    const key = `uploads/${Date.now()}-${fileName}`;
+    
+    // Construct key using path and fileName
+    const key = `${path}/${fileName || Date.now() + '-' + file.name}`;
 
     await s3Client.send(
       new PutObjectCommand({
@@ -35,7 +38,7 @@ export async function POST(request) {
 
     const publicUrl = `${process.env.R2_PUBLIC_URL}/${key}`;
 
-    return NextResponse.json({ url: publicUrl });
+    return NextResponse.json({ url: publicUrl, key });
   } catch (error) {
     console.error('R2 Upload Error:', error);
     return NextResponse.json({ error: 'Upload failed', details: error.message }, { status: 500 });

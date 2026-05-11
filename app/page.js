@@ -184,7 +184,8 @@ export default function Dashboard() {
             <div className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, cursor: 'pointer', paddingRight: '0.5rem' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>{round.date}</div>
-                <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>{round.course}</div>
+                <div style={{ fontWeight: '700', fontSize: '1.1rem', color: 'white' }}>{round.title || '무제 라운드'}</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{round.course}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ textAlign: 'right' }}>
@@ -228,7 +229,8 @@ export default function Dashboard() {
                 <div key={round.id} className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, padding: '0.75rem' }}>
                   <div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{round.date}</div>
-                    <div style={{ fontWeight: '600' }}>{round.course}</div>
+                    <div style={{ fontWeight: '700', color: 'white' }}>{round.title || '무제 라운드'}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{round.course}</div>
                     <div style={{ fontSize: '0.8rem' }}>Score: {round.score}</div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
