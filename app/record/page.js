@@ -706,21 +706,22 @@ export default function RecordRound() {
       </div>
 
       <div className="record-side-panel">
-        <div style={{ animation: 'fadeIn 0.3s ease-out', paddingBottom: '2rem' }}>
-          <div className="glass-panel" style={{ padding: '0.75rem 1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
+        <div style={{ animation: 'fadeIn 0.3s ease-out', paddingBottom: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+          <div className="glass-panel" style={{ padding: '0.4rem 0.6rem', marginTop: '-1.5rem', width: '50%', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.3rem', marginBottom: '0.3rem' }}>
               <h2 
-                style={{ margin: 0, color: 'var(--accent-neon)', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                style={{ margin: 0, color: 'var(--accent-neon)', fontSize: '1.1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                 onClick={() => setShowHoleSelectModal(true)}
               >
-                {currentHole.hole}H <span style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>▾</span>
+                {currentHole.hole}H <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>▾</span>
               </h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'white' }}>PAR {currentHole.par}</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'white' }}>PAR {currentHole.par}</div>
                 </div>
               </div>
             </div>
+
 
             <div style={{ paddingBottom: '0.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
@@ -753,11 +754,7 @@ export default function RecordRound() {
             </div>
             
             <div className="shot-list-container" style={{ marginTop: '0', borderTop: '1px solid var(--glass-border)', paddingTop: '0' }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.3rem', marginTop: '0' }}>
-              <button className="btn btn-primary" style={{ width: 'auto', padding: '0.6rem 1.2rem', fontSize: '1.2rem' }} onClick={openAddShotModal}>
-                SHOT+
-              </button>
-            </div>
+
             
             {currentShots.length === 0 ? (
               <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', padding: '1rem 0' }}>등록된 샷이 없습니다.</p>
@@ -823,15 +820,24 @@ export default function RecordRound() {
             style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '10px' }}
           />
         </div>
-        <button 
-          className="btn btn-secondary" 
-          style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: 'var(--accent-neon)', color: 'black', fontWeight: 'bold' }} 
-          onClick={() => fileInputRef.current?.click()}
-        >
-          CAM
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button 
+            className="btn btn-secondary" 
+            style={{ width: 'auto', padding: '0.6rem 1.2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: 'var(--accent-neon)', color: 'black', fontWeight: 'bold' }} 
+            onClick={() => fileInputRef.current?.click()}
+          >
+            CAM
+          </button>
+          <button 
+            className="btn btn-primary" 
+            style={{ width: 'auto', padding: '0.6rem 1.2rem', fontSize: '1.2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} 
+            onClick={openAddShotModal}
+          >
+            SHOT+
+          </button>
+        </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {currentHoleIdx > 0 && (
             <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i - 1)}>
               &lt;&lt;
@@ -844,6 +850,8 @@ export default function RecordRound() {
             </button>
           )}
         </div>
+
+
       </div>
 
 

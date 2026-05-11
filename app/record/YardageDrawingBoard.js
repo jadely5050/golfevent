@@ -324,7 +324,7 @@ export default function YardageDrawingBoard({
               left: marker.x, 
               top: marker.y,
               backgroundColor: marker.type === 'OB' ? 'red' : marker.type === 'HZ' ? 'blue' : marker.type === 'B' ? '#eab308' : (['FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
-              color: marker.type === 'IP' ? '#ff4d4f' : (['FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? 'black' : 'white',
+              color: (['LEFT', 'RIGHT', 'UP', 'DOWN'].includes(marker.type)) ? '#eab308' : marker.type === 'IP' ? '#ff4d4f' : (['FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? 'black' : 'white',
               padding: (['OB', 'HZ', 'B', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '2px 6px' : '0',
               borderRadius: (['OB', 'HZ', 'B', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '4px' : '0',
               fontSize: (['OB', 'HZ', 'B', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '0.9rem' : '1.5rem',
@@ -363,7 +363,12 @@ export default function YardageDrawingBoard({
             <button 
               key={t}
               className={`drawing-tool-btn ${activeTool === t ? 'active' : ''}`}
-              style={{ width: '38px', height: '38px', fontSize: '0.8rem' }}
+              style={{ 
+                width: '38px', 
+                height: '38px', 
+                fontSize: '0.8rem',
+                color: (['LEFT', 'RIGHT', 'UP', 'DOWN'].includes(t) && activeTool !== t) ? '#eab308' : undefined
+              }}
               onClick={(e) => { 
                 e.preventDefault(); 
                 e.stopPropagation();

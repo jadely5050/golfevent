@@ -570,7 +570,7 @@ p { margin: 0 0 1rem 0; line-height: 1.5; color: var(--text-secondary); }
   position: absolute;
   transform: translate(-50%, -50%);
   font-size: 1.2rem;
-  color: white;
+  color: #eab308;
   text-shadow: 0 0 4px rgba(0,0,0,0.8);
   pointer-events: none;
   user-select: none;
