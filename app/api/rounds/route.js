@@ -51,15 +51,28 @@ export async function GET() {
   }
 }
 
-export async function POST(request) {
   try {
     await initDB();
     const body = await request.json();
-    const { id, title, date, course, courseId, score, par, putts, holes, images, drawings } = body;
+    
+    // 다양한 프로퍼티 명칭 대응 (title, roundTitle, courseId, course_id 등)
+    const id = body.id;
+    const title = body.title || body.roundTitle || '';
+    const date = body.date;
+    const course = body.course;
+    const courseId = body.courseId || body.course_id || '';
+    const score = body.score;
+    const par = body.par;
+    const putts = body.putts;
+    const holes = body.holes;
+    const images = body.images;
+    const drawings = body.drawings;
 
     if (!id) {
       return NextResponse.json({ error: 'Missing round ID' }, { status: 400 });
     }
+
+    console.log(`Uploading round: ${id}, Title: ${title}, CourseId: ${courseId}`);
 
     const holesJson = JSON.stringify(holes || []);
     const imagesJson = JSON.stringify(images || []);
@@ -69,10 +82,10 @@ export async function POST(request) {
       INSERT INTO golf_rounds (id, title, date, course, course_id, score, par, putts, holes_data, images_data, drawings_data)
       VALUES (
         ${id}, 
-        ${title || ''},
+        ${title},
         ${date}, 
         ${course}, 
-        ${courseId || ''},
+        ${courseId},
         ${score}, 
         ${par}, 
         ${putts}, 

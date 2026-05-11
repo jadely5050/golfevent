@@ -123,6 +123,8 @@ export default function Dashboard() {
           drawings: drawings
         };
 
+        console.log('Final round data to upload:', finalRoundData);
+
         // 4. Neon DB로 최종 업로드
         const res = await fetch('/api/rounds', {
           method: 'POST',
