@@ -26,8 +26,9 @@ async function initDB() {
     await sql`ALTER TABLE golf_rounds ADD COLUMN IF NOT EXISTS drawings_data JSONB;`;
     await sql`ALTER TABLE golf_rounds ADD COLUMN IF NOT EXISTS title TEXT;`;
     await sql`ALTER TABLE golf_rounds ADD COLUMN IF NOT EXISTS course_id TEXT;`;
+    console.log('Database schema migration successful (title, course_id checked)');
   } catch (err) {
-    console.log('Column initialization info:', err.message);
+    console.error('Database migration error:', err.message);
   }
 }
 

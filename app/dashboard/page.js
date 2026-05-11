@@ -288,7 +288,8 @@ function DashboardContent() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingTop: '1rem' }}>
           <Link href="/" style={{ textDecoration: 'none', color: 'var(--accent-neon)', fontWeight: 'bold', fontSize: '0.9rem' }}>← BACK</Link>
           <div style={{ textAlign: 'right' }}>
-            <h1 style={{ margin: 0, fontSize: '1.2rem' }}>{round.course}</h1>
+            <h1 style={{ margin: 0, fontSize: '1.2rem', color: 'white' }}>{round.title || '무제 라운드'}</h1>
+            <div style={{ fontSize: '1rem', color: 'var(--accent-neon)', fontWeight: '600' }}>{round.course}</div>
             <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{round.date} | Score: {data.total.score} | Putts: {data.total.putts}</div>
           </div>
         </div>
@@ -391,7 +392,8 @@ function DashboardContent() {
       <div className="mobile-only">
         <div className="mobile-header">
           <Link href="/" style={{ textDecoration: 'none', color: 'var(--accent-neon)', fontWeight: 'bold', fontSize: '0.8rem' }}>← BACK</Link>
-          <h1 style={{ marginTop: '0.5rem' }}>{round.course}</h1>
+          <h1 style={{ marginTop: '0.5rem', marginBottom: '0.1rem', fontSize: '1.3rem', color: 'white' }}>{round.title || '무제 라운드'}</h1>
+          <div style={{ color: 'var(--accent-neon)', fontSize: '1rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>{round.course}</div>
           <div className="round-meta">
             {round.date} | <span style={{ color: 'var(--accent-neon)' }}>Score: {data.total.score}</span> | Putts: {data.total.putts}
           </div>
