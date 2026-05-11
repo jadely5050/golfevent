@@ -162,14 +162,6 @@ export default function RecordRound() {
     };
     request.onerror = (e) => console.error('IndexedDB Error:', e);
 
-    // Preload all 18 yardage images and green images to browser cache
-    for (let i = 1; i <= 18; i++) {
-      const img = new Image();
-      img.src = `/${i}h.jpg`;
-      const gImg = new Image();
-      gImg.src = `/g${i}.jpg`;
-    }
-
     // Fetch available courses
     fetchCourses();
   }, []);
@@ -187,6 +179,36 @@ export default function RecordRound() {
     }
     return [];
   };
+  
+  // 이미지 프리로딩 로직 최적화
+  useEffect(() => {
+    // 코스 목록이 아직 없으면 대기
+    if (courses.length === 0 && selectedCourseId) return;
+
+    const currentCourse = courses.find(c => c.id === selectedCourseId);
+    
+    if (selectedCourseId && currentCourse) {
+      // 1. 선택된 커스텀 코스의 이미지 36장(야디지18 + 그린18) 프리로딩
+      console.log(`Preloading custom course images for: ${currentCourse.name}`);
+      currentCourse.yardage_images?.forEach(url => {
+        const img = new Image();
+        img.src = url;
+      });
+      currentCourse.green_images?.forEach(url => {
+        const img = new Image();
+        img.src = url;
+      });
+    } else if (!selectedCourseId) {
+      // 2. 선택된 코스가 없을 때만 기본 이미지 프리로딩
+      console.log('Preloading default course images');
+      for (let i = 1; i <= 18; i++) {
+        const img = new Image();
+        img.src = `/${i}h.jpg`;
+        const gImg = new Image();
+        gImg.src = `/g${i}.jpg`;
+      }
+    }
+  }, [selectedCourseId, courses]);
 
   useEffect(() => {
     if (editId) {
