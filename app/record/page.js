@@ -196,7 +196,11 @@ export default function RecordRound() {
       currentCourse.green_images?.forEach(url => { new Image().src = url; });
     } 
     // 3. 신규 라운드 설정 화면(setup)이거나, 선택된 코스 없이 플레이 중일 때만 기본 이미지 로드
+    // (step이 play로 막 전환되었을 때 selectedCourseId가 아직 반영되지 않았을 가능성 대비하여 currentCourse 체크 추가)
     else if (!selectedCourseId && (step === 'setup' || step === 'play')) {
+      // 만약 아직 editId가 있고 loading에서 막 넘어온 경우라면 잠시 대기
+      if (editId && step === 'play' && !currentCourse) return;
+
       console.log('Preloading default course images');
       for (let i = 1; i <= 18; i++) {
         new Image().src = `/${i}h.jpg`;
@@ -219,7 +223,7 @@ export default function RecordRound() {
             const localRound = parsed.find(r => r.id === editId);
             if (localRound) {
               setCourse(localRound.course);
-              setSelectedCourseId(localRound.courseId || '');
+              setSelectedCourseId(localRound.courseId || localRound.course_id || '');
               setRoundTitle(localRound.title || '');
               if (localRound.date) setDate(new Date(localRound.date).toISOString().split("T")[0]);
               if (localRound.holes) setHoles(localRound.holes);
@@ -237,7 +241,7 @@ export default function RecordRound() {
             const roundToEdit = rounds.find(r => r.id === editId);
             if (roundToEdit) {
               setCourse(roundToEdit.course);
-              setSelectedCourseId(roundToEdit.course_id || '');
+              setSelectedCourseId(roundToEdit.course_id || roundToEdit.courseId || '');
               setRoundTitle(roundToEdit.title || '');
               if (roundToEdit.date) setDate(new Date(roundToEdit.date).toISOString().split("T")[0]);
               if (roundToEdit.holes) setHoles(roundToEdit.holes);
