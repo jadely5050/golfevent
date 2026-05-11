@@ -1,24 +1,36 @@
 import { NextResponse } from 'next/server';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
-const s3Client = new S3Client({
-  region: 'auto',
-  endpoint: process.env.R2_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-  },
-});
-
 export async function GET(request) {
   try {
-    // 환경 변수 확인
-    if (!process.env.R2_ENDPOINT || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_BUCKET_NAME) {
+    // 환경 변수 확인 및 값 추출
+    const endpoint = process.env.R2_ENDPOINT;
+    const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+    const bucketName = process.env.R2_BUCKET_NAME;
+
+    if (!endpoint || !accessKeyId || !secretAccessKey || !bucketName) {
       return NextResponse.json({ 
         error: 'Configuration missing', 
-        details: 'R2 environment variables are not set in Vercel settings.' 
+        details: 'R2 environment variables are not set or are empty in Vercel settings.',
+        env_status: {
+          endpoint: !!endpoint,
+          accessKeyId: !!accessKeyId,
+          secretAccessKey: !!secretAccessKey,
+          bucketName: !!bucketName
+        }
       }, { status: 500 });
     }
+
+    // 클라이언트 동적 초기화
+    const s3Client = new S3Client({
+      region: 'auto',
+      endpoint: endpoint.trim(),
+      credentials: {
+        accessKeyId: accessKeyId.trim(),
+        secretAccessKey: secretAccessKey.trim(),
+      },
+    });
 
     const { searchParams } = new URL(request.url);
     const key = searchParams.get('key');
