@@ -182,33 +182,28 @@ export default function RecordRound() {
   
   // 이미지 프리로딩 로직 최적화
   useEffect(() => {
-    // 코스 목록이 아직 없으면 대기
+    // 1. 초기 로딩 중이거나 데이터가 아직 없으면 대기
+    if (step === 'loading') return;
     if (courses.length === 0 && selectedCourseId) return;
 
+    // 2. 선택된 코스가 있는지 확인
     const currentCourse = courses.find(c => c.id === selectedCourseId);
     
     if (selectedCourseId && currentCourse) {
-      // 1. 선택된 커스텀 코스의 이미지 36장(야디지18 + 그린18) 프리로딩
-      console.log(`Preloading custom course images for: ${currentCourse.name}`);
-      currentCourse.yardage_images?.forEach(url => {
-        const img = new Image();
-        img.src = url;
-      });
-      currentCourse.green_images?.forEach(url => {
-        const img = new Image();
-        img.src = url;
-      });
-    } else if (!selectedCourseId) {
-      // 2. 선택된 코스가 없을 때만 기본 이미지 프리로딩
+      // 커스텀 코스 이미지 프리로딩
+      console.log(`Preloading custom course images: ${currentCourse.name}`);
+      currentCourse.yardage_images?.forEach(url => { new Image().src = url; });
+      currentCourse.green_images?.forEach(url => { new Image().src = url; });
+    } 
+    // 3. 신규 라운드 설정 화면(setup)이거나, 선택된 코스 없이 플레이 중일 때만 기본 이미지 로드
+    else if (!selectedCourseId && (step === 'setup' || step === 'play')) {
       console.log('Preloading default course images');
       for (let i = 1; i <= 18; i++) {
-        const img = new Image();
-        img.src = `/${i}h.jpg`;
-        const gImg = new Image();
-        gImg.src = `/g${i}.jpg`;
+        new Image().src = `/${i}h.jpg`;
+        new Image().src = `/g${i}.jpg`;
       }
     }
-  }, [selectedCourseId, courses]);
+  }, [selectedCourseId, courses, step]);
 
   useEffect(() => {
     if (editId) {
