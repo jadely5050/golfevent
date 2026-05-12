@@ -46,9 +46,16 @@ export default function YardageDrawingBoard({
 
     ctx.save();
     ctx.translate(transform.x, transform.y);
-    ctx.translate(0, H);
-    ctx.scale(transform.scale, transform.scale);
-    ctx.translate(0, -H);
+    if (mode === 'green') {
+      const W = canvas.width;
+      ctx.translate(W / 2, H / 2);
+      ctx.scale(transform.scale, transform.scale);
+      ctx.translate(-W / 2, -H / 2);
+    } else {
+      ctx.translate(0, H);
+      ctx.scale(transform.scale, transform.scale);
+      ctx.translate(0, -H);
+    }
 
     drawings.paths.forEach(path => {
       if (!path.points || path.points.length < 2) return;
@@ -90,8 +97,15 @@ export default function YardageDrawingBoard({
 
   const screenToCanvas = (sx, sy) => {
     if (!containerRef.current) return { x: sx, y: sy };
+    const W = containerRef.current.clientWidth;
     const H = containerRef.current.clientHeight;
     const S = transform.scale;
+    if (mode === 'green') {
+      return {
+        x: (sx - transform.x - W / 2) / S + W / 2,
+        y: (sy - transform.y - H / 2) / S + H / 2
+      };
+    }
     return {
       x: (sx - transform.x) / S,
       y: H - (H - (sy - transform.y)) / S
@@ -290,15 +304,15 @@ export default function YardageDrawingBoard({
       <div 
         style={{ 
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-          transformOrigin: 'left bottom',
+          transformOrigin: mode === 'green' ? 'center' : 'left bottom',
           position: 'absolute',
           bottom: 0,
           left: 0,
           width: '100%',
           height: '100%',
           display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'flex-start'
+          alignItems: mode === 'green' ? 'center' : 'flex-end',
+          justifyContent: mode === 'green' ? 'center' : 'flex-start'
         }}
       >
         {imageUrl === 'loading' ? (
@@ -310,7 +324,13 @@ export default function YardageDrawingBoard({
             ref={imageRef}
             src={imageUrl || `/${holeNumber}h.jpg`} 
             alt={mode === 'green' ? `Green ${holeNumber}` : `Hole ${holeNumber}`} 
-            style={{ height: '90%', width: 'auto', pointerEvents: 'none', userSelect: 'none' }}
+            style={{ 
+              height: mode === 'green' ? '100%' : '90%', 
+              width: mode === 'green' ? '100%' : 'auto', 
+              objectFit: mode === 'green' ? 'contain' : 'initial',
+              pointerEvents: 'none', 
+              userSelect: 'none' 
+            }}
             onLoad={handleResize}
             onError={(e) => e.target.style.display = 'none'}
           />
