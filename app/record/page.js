@@ -354,6 +354,22 @@ export default function RecordRound() {
 
     if (editingShotId) {
       hole.shots = hole.shots.map(s => s.id === editingShotId ? { ...shotDraft } : s);
+      
+      // Auto-add concede putt on edit if landing changed to 'C'
+      if (shotDraft.club === 'Pt' && shotDraft.landing === 'C') {
+        const shotIndex = hole.shots.findIndex(s => s.id === editingShotId);
+        const nextShot = hole.shots[shotIndex + 1];
+        // Only add if next shot isn't already a concede
+        if (!nextShot || nextShot.memo !== '컨시드') {
+          hole.shots.splice(shotIndex + 1, 0, {
+            ...defaultShot,
+            club: 'Pt',
+            landing: 'C',
+            memo: '컨시드',
+            id: (Date.now() + 1).toString()
+          });
+        }
+      }
     } else {
       hole.shots.push({ ...shotDraft, id: Date.now().toString() });
 

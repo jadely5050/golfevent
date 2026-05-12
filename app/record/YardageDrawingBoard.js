@@ -372,13 +372,28 @@ export default function YardageDrawingBoard({
 
       <div className="drawing-marker-bar" style={{ pointerEvents: 'none' }}>
         <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '0.3rem', pointerEvents: 'auto' }} onPointerDown={stopPropagation}>
-          <button 
-            className="drawing-tool-btn" 
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsPanelCollapsed(!isPanelCollapsed); }}
-            style={{ width: '38px', height: '38px' }}
-          >
-            {isPanelCollapsed ? '▲' : '▼'}
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button 
+              className="drawing-tool-btn" 
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsPanelCollapsed(!isPanelCollapsed); }}
+              style={{ width: '38px', height: '38px' }}
+            >
+              {isPanelCollapsed ? '▲' : '▼'}
+            </button>
+
+            <button 
+              className={`drawing-control-btn ${activeTool === 'pencil' ? 'active' : ''}`}
+              style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+              onClick={(e) => { 
+                e.preventDefault(); 
+                e.stopPropagation();
+                setActiveTool('pencil'); 
+              }}
+            >
+              ✎
+            </button>
+          </div>
+
           {!isPanelCollapsed && (mode === 'green' ? ['FLAG', 'P1', 'P2', 'P3', 'P4'] : ['OB', 'HZ', 'B', 'IP', 'LEFT', 'RIGHT', 'UP', 'DOWN']).map(t => (
             <button 
               key={t}
@@ -422,17 +437,6 @@ export default function YardageDrawingBoard({
             onChange={(e) => setActiveColor(e.target.value)} 
             onPointerDown={stopPropagation}
           />
-          <button 
-            className={`drawing-control-btn ${activeTool === 'pencil' ? 'active' : ''}`}
-            style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
-            onClick={(e) => { 
-              e.preventDefault(); 
-              e.stopPropagation();
-              setActiveTool('pencil'); 
-            }}
-          >
-            ✎
-          </button>
         </div>
       </div>
     </div>
