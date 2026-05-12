@@ -11,11 +11,11 @@ import YardageDrawingBoard from './YardageDrawingBoard';
 
 
 
-const CLUBS = ['W1','W4','W7','U3','U4','I5','I6','I7','I8','I9','Pi','50','54','58','Pt'];
-const SHOTS = ['↑','↱','↰','↷','↶','T','D'];
-const LANDINGS = ['F','G','R','B','C','I'];
-const DIST_CTRL = ['◎','↑','↓'];
-const PENALTIES = ['-','O','H'];
+const CLUBS = ['W1', 'W4', 'W7', 'U3', 'U4', 'I5', 'I6', 'I7', 'I8', 'I9', 'Pi', '50', '54', '58', 'Pt'];
+const SHOTS = ['↑', '↱', '↰', '↷', '↶', 'T', 'D'];
+const LANDINGS = ['F', 'G', 'R', 'B', 'C', 'I'];
+const DIST_CTRL = ['◎', '↑', '↓'];
+const PENALTIES = ['-', 'O', 'H'];
 
 const defaultShot = {
   club: 'W1',
@@ -38,23 +38,23 @@ function SortableShotItem({ id, shot, idx, onEdit, onRemove }) {
   };
 
   return (
-    <div 
-      ref={setNodeRef} 
-      style={style} 
-      className="shot-list-item" 
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="shot-list-item"
       onClick={() => onEdit(shot)}
       onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
       onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'}
     >
       <div>
-        <span 
-          {...attributes} 
-          {...listeners} 
-          style={{ 
-            cursor: 'grab', 
-            marginRight: '0.5rem', 
-            color: 'var(--text-secondary)', 
-            padding: '0.2rem 0.5rem', 
+        <span
+          {...attributes}
+          {...listeners}
+          style={{
+            cursor: 'grab',
+            marginRight: '0.5rem',
+            color: 'var(--text-secondary)',
+            padding: '0.2rem 0.5rem',
             touchAction: 'none',
             userSelect: 'none',
             WebkitUserSelect: 'none'
@@ -67,9 +67,9 @@ function SortableShotItem({ id, shot, idx, onEdit, onRemove }) {
         {shot.tDis && <span style={{ color: 'var(--text-secondary)', marginLeft: '0.3rem' }}>({shot.tDis}m)</span>}
         {shot.penalty !== '-' && <span style={{ color: 'var(--danger)', marginLeft: '0.3rem' }}>[{shot.penalty}]</span>}
       </div>
-      <button 
-        onPointerDown={(e) => e.stopPropagation()} 
-        onClick={(e) => { e.stopPropagation(); onRemove(e, shot.id); }} 
+      <button
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => { e.stopPropagation(); onRemove(e, shot.id); }}
         style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}
       >×</button>
     </div>
@@ -79,7 +79,7 @@ function SortableShotItem({ id, shot, idx, onEdit, onRemove }) {
 export default function RecordRound() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // URL에서 직접 ID를 확인하여 첫 렌더링 시점의 깜빡임 방지
   const [initialEditId] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -93,12 +93,12 @@ export default function RecordRound() {
   const [step, setStep] = useState(editId ? 'loading' : 'setup');
   const fileInputRef = useRef(null);
   const dbRef = useRef(null);
-  
+
   // Round Info
   const [course, setCourse] = useState('');
   const [roundTitle, setRoundTitle] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  
+
   // Holes state (1-18)
   const initialHoles = Array.from({ length: 18 }, (_, i) => ({
     hole: i + 1,
@@ -179,7 +179,7 @@ export default function RecordRound() {
     }
     return [];
   };
-  
+
   // 이미지 프리로딩 로직 최적화
   useEffect(() => {
     // 1. 초기 로딩 중이거나 데이터가 아직 없으면 대기
@@ -188,13 +188,13 @@ export default function RecordRound() {
 
     // 2. 선택된 코스가 있는지 확인
     const currentCourse = courses.find(c => c.id === selectedCourseId);
-    
+
     if (selectedCourseId && currentCourse) {
       // 커스텀 코스 이미지 프리로딩
       console.log(`Preloading custom course images: ${currentCourse.name}`);
       currentCourse.yardage_images?.forEach(url => { new Image().src = url; });
       currentCourse.green_images?.forEach(url => { new Image().src = url; });
-    } 
+    }
     // 3. 신규 라운드 설정 화면(setup)이거나, 선택된 코스 없이 플레이 중일 때만 기본 이미지 로드
     // (step이 play로 막 전환되었을 때 selectedCourseId가 아직 반영되지 않았을 가능성 대비하여 currentCourse 체크 추가)
     else if (!selectedCourseId && (step === 'setup' || step === 'play')) {
@@ -215,7 +215,7 @@ export default function RecordRound() {
         try {
           // 코스 목록 먼저 불러오기 (이미지 깜빡임 방지)
           await fetchCourses();
-          
+
           // 로컬 데이터 먼저 확인
           const saved = localStorage.getItem('golf-rounds');
           if (saved) {
@@ -293,7 +293,7 @@ export default function RecordRound() {
     const totalScore = holes.reduce((sum, h) => sum + computeScore(h.shots || [], h.par), 0);
     const totalPar = holes.reduce((sum, h) => sum + h.par, 0);
     const totalPutts = holes.reduce((sum, h) => sum + computePutts(h.shots || []), 0);
-    
+
     const finalHoles = holes.map(h => ({
       ...h,
       score: computeScore(h.shots || [], h.par),
@@ -313,7 +313,7 @@ export default function RecordRound() {
       holes: finalHoles,
       images: images // 사진 메타데이터 포함하여 저장
     };
-    
+
     // Save to localStorage
     const saved = localStorage.getItem('golf-rounds');
     let parsed = saved ? JSON.parse(saved) : [];
@@ -349,12 +349,12 @@ export default function RecordRound() {
     const newHoles = [...holes];
     const hole = newHoles[currentHoleIdx];
     hole.shots = hole.shots || [];
-    
+
     if (editingShotId) {
       hole.shots = hole.shots.map(s => s.id === editingShotId ? { ...shotDraft } : s);
     } else {
       hole.shots.push({ ...shotDraft, id: Date.now().toString() });
-      
+
       // Auto-add concede putt
       if (shotDraft.club === 'Pt' && shotDraft.landing === 'C') {
         hole.shots.push({
@@ -366,7 +366,7 @@ export default function RecordRound() {
         });
       }
     }
-    
+
     setHoles(newHoles);
     setShowShotModal(false);
   };
@@ -381,13 +381,13 @@ export default function RecordRound() {
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
-    
+
     if (over && active.id !== over.id) {
       const newHoles = [...holes];
       const hole = newHoles[currentHoleIdx];
       const oldIndex = hole.shots.findIndex(s => s.id === active.id);
       const newIndex = hole.shots.findIndex(s => s.id === over.id);
-      
+
       hole.shots = arrayMove(hole.shots, oldIndex, newIndex);
       setHoles(newHoles);
     }
@@ -425,10 +425,10 @@ export default function RecordRound() {
     try {
       // 1. GPS 정보 추출 (원본 파일에서)
       const gps = await exifr.gps(file);
-      
+
       // 2. 이미지 압축
       const compressedBlob = await compressImage(file, { maxWidth: 1280, quality: 0.7 });
-      
+
       // Blob을 File 객체로 변환 (기존 코드와의 호환성을 위해 이름 유지)
       const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
 
@@ -470,7 +470,7 @@ export default function RecordRound() {
         setUploadProgress(i + 1);
         const file = yardageFiles[i];
         const compressed = await compressImage(file, { maxWidth: 1280, quality: 0.8 });
-        
+
         const formData = new FormData();
         formData.append('file', compressed);
         formData.append('fileName', `${i + 1}.jpg`);
@@ -486,7 +486,7 @@ export default function RecordRound() {
         setUploadProgress(18 + i + 1);
         const file = greenFiles[i];
         const compressed = await compressImage(file, { maxWidth: 1024, quality: 0.8 });
-        
+
         const formData = new FormData();
         formData.append('file', compressed);
         formData.append('fileName', `${i + 1}.jpg`);
@@ -543,7 +543,8 @@ export default function RecordRound() {
           <div style={{ color: 'var(--accent-neon)', fontSize: '1.2rem', marginBottom: '1rem' }}>라운드 데이터를 불러오는 중...</div>
           <div className="loader"></div>
         </div>
-        <style dangerouslySetInnerHTML={{__html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           .loader { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--accent-neon); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
           @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         `}} />
@@ -557,15 +558,16 @@ export default function RecordRound() {
       <div className="record-container">
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', padding: '1rem' }}>
           <div className="glass-panel" style={{ animation: 'fadeIn 0.4s ease-out', width: '100%', maxWidth: '400px', margin: 0 }}>
-            <style dangerouslySetInnerHTML={{__html: `
+            <style dangerouslySetInnerHTML={{
+              __html: `
               @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
             `}} />
             <h2>라운드 기본 정보</h2>
             <div className="form-group">
               <label className="form-label">라운드 명칭 (예: 2024 동호회 정기라운드)</label>
-              <input 
-                type="text" 
-                className="form-input" 
+              <input
+                type="text"
+                className="form-input"
                 placeholder="라운드 이름을 입력하세요"
                 value={roundTitle}
                 onChange={(e) => setRoundTitle(e.target.value)}
@@ -574,9 +576,9 @@ export default function RecordRound() {
             <div className="form-group">
               <label className="form-label">골프장 (코스명)</label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <select 
-                  className="form-input" 
-                  value={selectedCourseId} 
+                <select
+                  className="form-input"
+                  value={selectedCourseId}
                   onChange={(e) => {
                     const id = e.target.value;
                     setSelectedCourseId(id);
@@ -594,9 +596,9 @@ export default function RecordRound() {
                 <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.5rem' }} onClick={() => setShowAddCourseModal(true)}>+</button>
               </div>
               {!selectedCourseId && (
-                <input 
-                  type="text" 
-                  className="form-input" 
+                <input
+                  type="text"
+                  className="form-input"
                   placeholder="예: 클럽72 오션코스"
                   value={course}
                   onChange={(e) => setCourse(e.target.value)}
@@ -606,9 +608,9 @@ export default function RecordRound() {
             </div>
             <div className="form-group">
               <label className="form-label">날짜</label>
-              <input 
-                type="date" 
-                className="form-input" 
+              <input
+                type="date"
+                className="form-input"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 onClick={(e) => e.target.showPicker && e.target.showPicker()}
@@ -675,9 +677,9 @@ export default function RecordRound() {
   return (
     <div className="record-container">
       <div className="hole-yardage-container">
-        <YardageDrawingBoard 
-          holeNumber={currentHole.hole} 
-          drawingData={currentHole.drawings} 
+        <YardageDrawingBoard
+          holeNumber={currentHole.hole}
+          drawingData={currentHole.drawings}
           obCount={totalObCount}
           hazardCount={totalHazardCount}
           imageUrl={selectedCourseId && courses.length === 0 ? 'loading' : courses.find(c => c.id === selectedCourseId)?.yardage_images?.[currentHoleIdx]}
@@ -709,7 +711,7 @@ export default function RecordRound() {
         <div style={{ animation: 'fadeIn 0.3s ease-out', paddingBottom: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
           <div className="glass-panel" style={{ padding: '0.4rem 0.6rem', marginTop: '-1.5rem', width: '50%', borderRadius: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.3rem', marginBottom: '0.3rem' }}>
-              <h2 
+              <h2
                 style={{ margin: 0, color: 'var(--accent-neon)', fontSize: '1.1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                 onClick={() => setShowHoleSelectModal(true)}
               >
@@ -751,32 +753,32 @@ export default function RecordRound() {
                 </div>
               </div>
             </div>
-            </div>
-            
-            <div className="shot-list-container" style={{ marginTop: '0', borderTop: '1px solid var(--glass-border)', paddingTop: '0' }}>
+          </div>
 
-            
+          <div className="shot-list-container" style={{ marginTop: '4rem', borderTop: '1px solid var(--glass-border)', paddingTop: '0' }}>
+
+
             {currentShots.length === 0 ? (
               <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', padding: '1rem 0' }}>등록된 샷이 없습니다.</p>
             ) : (
               <div className="shot-list-wrapper" style={{ display: 'flex', flexDirection: 'column', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
-                <DndContext 
+                <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
-                  <SortableContext 
+                  <SortableContext
                     items={currentShots.map(s => s.id)}
                     strategy={verticalListSortingStrategy}
                   >
                     {currentShots.map((shot, idx) => (
-                      <SortableShotItem 
-                        key={shot.id} 
-                        id={shot.id} 
-                        shot={shot} 
-                        idx={idx} 
-                        onEdit={openEditShotModal} 
-                        onRemove={removeShot} 
+                      <SortableShotItem
+                        key={shot.id}
+                        id={shot.id}
+                        shot={shot}
+                        idx={idx}
+                        onEdit={openEditShotModal}
+                        onRemove={removeShot}
                       />
                     ))}
                   </SortableContext>
@@ -788,21 +790,21 @@ export default function RecordRound() {
       </div>
 
       <div className="fixed-nav-buttons" style={{ flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-        <input 
-          type="file" 
-          accept="image/*" 
-          capture="environment" 
-          ref={fileInputRef} 
-          style={{ display: 'none' }} 
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
           onChange={handleCameraChange}
         />
-        
-        <div 
-          className="glass-panel" 
-          style={{ 
-            width: '144px', 
-            padding: '0.4rem', 
-            marginBottom: '0', 
+
+        <div
+          className="glass-panel"
+          style={{
+            width: '144px',
+            padding: '0.4rem',
+            marginBottom: '0',
             cursor: 'pointer',
             overflow: 'hidden',
             display: 'flex',
@@ -814,9 +816,9 @@ export default function RecordRound() {
           onClick={() => setShowGreenModal(true)}
         >
           <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>GREEN</div>
-          <img 
-            src={courses.find(c => c.id === selectedCourseId)?.green_images?.[currentHoleIdx] || `/g${currentHole.hole}.jpg`} 
-            alt="Green Preview" 
+          <img
+            src={courses.find(c => c.id === selectedCourseId)?.green_images?.[currentHoleIdx] || `/g${currentHole.hole}.jpg`}
+            alt="Green Preview"
             style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '10px' }}
           />
         </div>
@@ -861,12 +863,12 @@ export default function RecordRound() {
             <h3 style={{ marginTop: 0, marginBottom: '0.5rem', color: 'var(--accent-neon)', fontSize: '1rem' }}>
               {editingShotId ? '샷 기록 수정' : '새로운 샷 기록'}
             </h3>
-            
+
             <div className="form-group">
               <label className="form-label" style={{ textAlign: 'right' }}>CLUB</label>
               <div className="chip-group">
                 {CLUBS.map(c => (
-                  <div key={c} className={`chip ${shotDraft.club === c ? 'active' : ''}`} onClick={() => setShotDraft({...shotDraft, club: c})}>
+                  <div key={c} className={`chip ${shotDraft.club === c ? 'active' : ''}`} onClick={() => setShotDraft({ ...shotDraft, club: c })}>
                     {c}
                   </div>
                 ))}
@@ -877,7 +879,7 @@ export default function RecordRound() {
               <label className="form-label" style={{ textAlign: 'right' }}>SHOT</label>
               <div className="chip-group">
                 {SHOTS.map(s => (
-                  <div key={s} className={`chip ${shotDraft.shotType === s ? 'active' : ''}`} onClick={() => setShotDraft({...shotDraft, shotType: s})}>
+                  <div key={s} className={`chip ${shotDraft.shotType === s ? 'active' : ''}`} onClick={() => setShotDraft({ ...shotDraft, shotType: s })}>
                     {s}
                   </div>
                 ))}
@@ -888,7 +890,7 @@ export default function RecordRound() {
               <label className="form-label" style={{ textAlign: 'right' }}>LANDING</label>
               <div className="chip-group">
                 {LANDINGS.map(l => (
-                  <div key={l} className={`chip ${shotDraft.landing === l ? 'active' : ''}`} onClick={() => setShotDraft({...shotDraft, landing: l})}>
+                  <div key={l} className={`chip ${shotDraft.landing === l ? 'active' : ''}`} onClick={() => setShotDraft({ ...shotDraft, landing: l })}>
                     {l}
                   </div>
                 ))}
@@ -899,7 +901,7 @@ export default function RecordRound() {
               <label className="form-label" style={{ textAlign: 'right' }}>DISTANCE</label>
               <div className="chip-group">
                 {DIST_CTRL.map(d => (
-                  <div key={d} className={`chip ${shotDraft.distanceCtrl === d ? 'active' : ''}`} onClick={() => setShotDraft({...shotDraft, distanceCtrl: d})}>
+                  <div key={d} className={`chip ${shotDraft.distanceCtrl === d ? 'active' : ''}`} onClick={() => setShotDraft({ ...shotDraft, distanceCtrl: d })}>
                     {d}
                   </div>
                 ))}
@@ -907,11 +909,11 @@ export default function RecordRound() {
               <div className="distance-inputs" style={{ marginTop: '0.25rem' }}>
                 <div className="distance-input-wrapper">
                   <span style={{ fontSize: '0.7rem' }}>T.Dis</span>
-                  <input type="number" className="form-input" style={{ padding: '0.3rem', fontSize: '0.8rem' }} value={shotDraft.tDis} onChange={e => setShotDraft({...shotDraft, tDis: e.target.value})} />
+                  <input type="number" className="form-input" style={{ padding: '0.3rem', fontSize: '0.8rem' }} value={shotDraft.tDis} onChange={e => setShotDraft({ ...shotDraft, tDis: e.target.value })} />
                 </div>
                 <div className="distance-input-wrapper">
                   <span style={{ fontSize: '0.7rem' }}>F.Dis</span>
-                  <input type="number" className="form-input" style={{ padding: '0.3rem', fontSize: '0.8rem' }} value={shotDraft.fDis} onChange={e => setShotDraft({...shotDraft, fDis: e.target.value})} />
+                  <input type="number" className="form-input" style={{ padding: '0.3rem', fontSize: '0.8rem' }} value={shotDraft.fDis} onChange={e => setShotDraft({ ...shotDraft, fDis: e.target.value })} />
                 </div>
               </div>
             </div>
@@ -920,7 +922,7 @@ export default function RecordRound() {
               <label className="form-label" style={{ textAlign: 'right' }}>Penalty</label>
               <div className="chip-group">
                 {PENALTIES.map(p => (
-                  <div key={p} className={`chip ${shotDraft.penalty === p ? 'active' : ''}`} onClick={() => setShotDraft({...shotDraft, penalty: p})}>
+                  <div key={p} className={`chip ${shotDraft.penalty === p ? 'active' : ''}`} onClick={() => setShotDraft({ ...shotDraft, penalty: p })}>
                     {p}
                   </div>
                 ))}
@@ -929,12 +931,12 @@ export default function RecordRound() {
 
             <div className="form-group">
               <label className="form-label" style={{ textAlign: 'right' }}>Memo</label>
-              <input 
+              <input
                 type="text"
-                className="form-input" 
+                className="form-input"
                 style={{ padding: '0.3rem', fontSize: '0.8rem', textAlign: 'right' }}
-                value={shotDraft.memo} 
-                onChange={e => setShotDraft({...shotDraft, memo: e.target.value})}
+                value={shotDraft.memo}
+                onChange={e => setShotDraft({ ...shotDraft, memo: e.target.value })}
                 placeholder="간단한 메모"
               />
             </div>
@@ -953,12 +955,12 @@ export default function RecordRound() {
         <div className="modal-overlay" onClick={() => setShowParSettingsModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h3 style={{ marginTop: 0, color: 'var(--accent-neon)' }}>라운드 설정</h3>
-            
+
             <div className="form-group" style={{ marginBottom: '1rem' }}>
               <label className="form-label" style={{ fontSize: '0.8rem' }}>라운드 명칭</label>
-              <input 
-                type="text" 
-                className="form-input" 
+              <input
+                type="text"
+                className="form-input"
                 value={roundTitleDraft}
                 onChange={(e) => setRoundTitleDraft(e.target.value)}
                 style={{ padding: '0.5rem', fontSize: '0.9rem' }}
@@ -968,9 +970,9 @@ export default function RecordRound() {
             <div className="form-group" style={{ marginBottom: '1rem' }}>
               <label className="form-label" style={{ fontSize: '0.8rem' }}>골프장 (코스명)</label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <select 
-                  className="form-input" 
-                  value={selectedCourseId} 
+                <select
+                  className="form-input"
+                  value={selectedCourseId}
                   onChange={(e) => {
                     const id = e.target.value;
                     setSelectedCourseId(id);
@@ -988,21 +990,21 @@ export default function RecordRound() {
                 <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.5rem' }} onClick={() => setShowAddCourseModal(true)}>+</button>
               </div>
               {!selectedCourseId && (
-                <input 
-                  type="text" 
-                  className="form-input" 
+                <input
+                  type="text"
+                  className="form-input"
                   value={courseDraft}
                   onChange={(e) => setCourseDraft(e.target.value)}
                   style={{ padding: '0.5rem', fontSize: '0.9rem', marginTop: '0.5rem' }}
                 />
               )}
             </div>
-            
+
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label className="form-label" style={{ fontSize: '0.8rem' }}>날짜</label>
-              <input 
-                type="date" 
-                className="form-input" 
+              <input
+                type="date"
+                className="form-input"
                 value={dateDraft}
                 onChange={(e) => setDateDraft(e.target.value)}
                 onClick={(e) => e.target.showPicker && e.target.showPicker()}
@@ -1012,13 +1014,13 @@ export default function RecordRound() {
 
             <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '4px', textAlign: 'center', marginBottom: '4px' }}>
-                {parDraft.slice(0, 9).map((_, i) => <div key={i} style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>{i+1}</div>)}
+                {parDraft.slice(0, 9).map((_, i) => <div key={i} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{i + 1}</div>)}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '4px' }}>
                 {parDraft.slice(0, 9).map((p, i) => (
-                  <select 
-                    key={i} 
-                    value={p} 
+                  <select
+                    key={i}
+                    value={p}
                     onChange={(e) => {
                       const newDraft = [...parDraft];
                       newDraft[i] = parseInt(e.target.value);
@@ -1033,16 +1035,16 @@ export default function RecordRound() {
                 ))}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '4px', textAlign: 'center', marginTop: '1.5rem', marginBottom: '4px' }}>
-                {parDraft.slice(9, 18).map((_, i) => <div key={i+9} style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>{i+10}</div>)}
+                {parDraft.slice(9, 18).map((_, i) => <div key={i + 9} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{i + 10}</div>)}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '4px' }}>
                 {parDraft.slice(9, 18).map((p, i) => (
-                  <select 
-                    key={i+9} 
-                    value={p} 
+                  <select
+                    key={i + 9}
+                    value={p}
                     onChange={(e) => {
                       const newDraft = [...parDraft];
-                      newDraft[i+9] = parseInt(e.target.value);
+                      newDraft[i + 9] = parseInt(e.target.value);
                       setParDraft(newDraft);
                     }}
                     style={{ padding: '6px 0', background: '#334155', color: 'white', border: 'none', borderRadius: '4px', textAlign: 'center', appearance: 'none', width: '100%', fontSize: '0.9rem' }}
@@ -1060,15 +1062,15 @@ export default function RecordRound() {
               <button className="btn btn-primary" onClick={saveParSettings}>설정 저장</button>
             </div>
 
-            <button 
+            <button
               className="btn btn-secondary"
               style={{ marginTop: '1rem' }}
               onClick={() => { setShowParSettingsModal(false); handleFinish(); }}
             >
               라운드 종료
             </button>
-            
-            <button 
+
+            <button
               style={{ width: '100%', marginTop: '0.5rem', padding: '0.8rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
               onClick={deleteRound}
             >
@@ -1086,10 +1088,10 @@ export default function RecordRound() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>OUT (1~9)</div>
                 {holes.slice(0, 9).map((h, i) => (
-                  <button 
-                    key={i} 
-                    className={`btn ${currentHoleIdx === i ? 'btn-primary' : 'btn-secondary'}`} 
-                    onClick={() => {setCurrentHoleIdx(i); setShowHoleSelectModal(false);}}
+                  <button
+                    key={i}
+                    className={`btn ${currentHoleIdx === i ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => { setCurrentHoleIdx(i); setShowHoleSelectModal(false); }}
                     style={{ padding: '0.5rem' }}
                   >
                     {h.hole}H
@@ -1099,10 +1101,10 @@ export default function RecordRound() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>IN (10~18)</div>
                 {holes.slice(9, 18).map((h, i) => (
-                  <button 
-                    key={i+9} 
-                    className={`btn ${currentHoleIdx === i+9 ? 'btn-primary' : 'btn-secondary'}`} 
-                    onClick={() => {setCurrentHoleIdx(i+9); setShowHoleSelectModal(false);}}
+                  <button
+                    key={i + 9}
+                    className={`btn ${currentHoleIdx === i + 9 ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => { setCurrentHoleIdx(i + 9); setShowHoleSelectModal(false); }}
                     style={{ padding: '0.5rem' }}
                   >
                     {h.hole}H
@@ -1117,15 +1119,15 @@ export default function RecordRound() {
 
       {showGreenModal && (
         <div className="modal-overlay" onClick={() => setShowGreenModal(false)}>
-          <div 
-            className="glass-panel" 
-            onClick={e => e.stopPropagation()} 
-            style={{ 
+          <div
+            className="glass-panel"
+            onClick={e => e.stopPropagation()}
+            style={{
               position: 'relative',
-              width: '90vw', 
-              maxWidth: '500px', 
-              aspectRatio: '1/1', 
-              padding: 0, 
+              width: '90vw',
+              maxWidth: '500px',
+              aspectRatio: '1/1',
+              padding: 0,
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
@@ -1133,14 +1135,14 @@ export default function RecordRound() {
             }}
           >
             <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1000 }}>
-               <button 
-                 onClick={() => setShowGreenModal(false)}
-                 style={{ background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', fontSize: '1.5rem', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-               >
-                 ×
-               </button>
+              <button
+                onClick={() => setShowGreenModal(false)}
+                style={{ background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', fontSize: '1.5rem', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                ×
+              </button>
             </div>
-            <YardageDrawingBoard 
+            <YardageDrawingBoard
               holeNumber={currentHole.hole}
               mode="green"
               imageUrl={selectedCourseId && courses.length === 0 ? 'loading' : (courses.find(c => c.id === selectedCourseId)?.green_images?.[currentHoleIdx] || `/g${currentHole.hole}.jpg`)}
@@ -1158,12 +1160,12 @@ export default function RecordRound() {
         <div className="modal-overlay" onClick={() => !isUploading && setShowAddCourseModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <h3 style={{ marginTop: 0, color: 'var(--accent-neon)' }}>새 코스 추가</h3>
-            
+
             <div className="form-group">
               <label className="form-label">코스명</label>
-              <input 
-                type="text" 
-                className="form-input" 
+              <input
+                type="text"
+                className="form-input"
                 value={newCourseName}
                 onChange={(e) => setNewCourseName(e.target.value)}
                 placeholder="예: 클럽72 오션코스"
@@ -1173,9 +1175,9 @@ export default function RecordRound() {
 
             <div className="form-group">
               <label className="form-label">야디지 이미지 (18장)</label>
-              <input 
-                type="file" 
-                multiple 
+              <input
+                type="file"
+                multiple
                 accept="image/*"
                 onChange={(e) => handleFileSelect(e, setYardageFiles)}
                 disabled={isUploading}
@@ -1188,9 +1190,9 @@ export default function RecordRound() {
 
             <div className="form-group">
               <label className="form-label">그린 이미지 (18장)</label>
-              <input 
-                type="file" 
-                multiple 
+              <input
+                type="file"
+                multiple
                 accept="image/*"
                 onChange={(e) => handleFileSelect(e, setGreenFiles)}
                 disabled={isUploading}
