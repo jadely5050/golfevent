@@ -755,7 +755,7 @@ export default function RecordRound() {
             </div>
           </div>
 
-          <div className="shot-list-container" style={{ marginTop: '5rem', borderTop: '1px solid var(--glass-border)', paddingTop: '0' }}>
+          <div className="shot-list-container" style={{ marginTop: '5.5rem', borderTop: '1px solid var(--glass-border)', paddingTop: '0' }}>
 
 
             {currentShots.length === 0 ? (
