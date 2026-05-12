@@ -761,7 +761,7 @@ export default function RecordRound() {
             {currentShots.length === 0 ? (
               <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', padding: '1rem 0' }}>등록된 샷이 없습니다.</p>
             ) : (
-              <div className="shot-list-wrapper" style={{ display: 'flex', flexDirection: 'column', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
+              <div className="shot-list-wrapper" style={{ display: 'flex', flexDirection: 'column', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px', paddingTop: '0px', paddingBottom: '1px' }}>
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
