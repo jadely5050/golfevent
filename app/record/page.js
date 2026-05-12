@@ -8,6 +8,7 @@ import { CSS } from '@dnd-kit/utilities';
 import exifr from 'exifr';
 import { compressImage } from '../utils/imageCompression';
 import YardageDrawingBoard from './YardageDrawingBoard';
+import { getCurrentLocation } from '../utils/location';
 
 
 
@@ -106,7 +107,8 @@ export default function RecordRound() {
     fairway: 'hit', // 'hit' | 'left' | 'right' | 'miss'
     shots: [],
     drawings: { paths: [], markers: [] },
-    greenDrawings: { paths: [], markers: [] }
+    greenDrawings: { paths: [], markers: [] },
+    pinCoords: null
   }));
 
   const [holes, setHoles] = useState(initialHoles);
@@ -416,6 +418,41 @@ export default function RecordRound() {
       alert(`사진이 기기에 저장되었습니다.\n📍 위치: ${latitude || '정보 없음'}, ${longitude || '정보 없음'}\n⏰ 시간: ${formattedTime}`);
     };
     request.onerror = (e) => console.error('Save failed:', e);
+  };
+
+  const handleQuickPutt = async () => {
+    try {
+      const loc = await getCurrentLocation();
+      const newHoles = [...holes];
+      const hole = newHoles[currentHoleIdx];
+      hole.shots = hole.shots || [];
+      
+      const newShot = {
+        ...defaultShot,
+        id: Date.now().toString(),
+        club: 'Pt',
+        coords: { lat: loc.lat, lng: loc.lng }
+      };
+      
+      hole.shots.push(newShot);
+      setHoles(newHoles);
+      alert('퍼팅 위치가 저장되었습니다.');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleSaveHoleLocation = async () => {
+    try {
+      const loc = await getCurrentLocation();
+      const newHoles = [...holes];
+      const hole = newHoles[currentHoleIdx];
+      hole.pinCoords = { lat: loc.lat, lng: loc.lng, timestamp: new Date().toISOString() };
+      setHoles(newHoles);
+      alert(`${hole.hole}번 홀 핀 위치가 저장되었습니다.`);
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   const handleCameraChange = async (e) => {
@@ -840,6 +877,20 @@ export default function RecordRound() {
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button 
+            className="btn btn-secondary" 
+            style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: '#ff4d4f', color: 'white', fontWeight: 'bold' }} 
+            onClick={handleSaveHoleLocation}
+          >
+            Ho
+          </button>
+          <button 
+            className="btn btn-secondary" 
+            style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: '#1890ff', color: 'white', fontWeight: 'bold' }} 
+            onClick={handleQuickPutt}
+          >
+            Pt
+          </button>
           {currentHoleIdx > 0 && (
             <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i - 1)}>
               &lt;&lt;
@@ -852,6 +903,7 @@ export default function RecordRound() {
             </button>
           )}
         </div>
+
 
 
       </div>
