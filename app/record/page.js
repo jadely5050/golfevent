@@ -755,7 +755,7 @@ export default function RecordRound() {
             </div>
           </div>
 
-          <div className="shot-list-container" style={{ marginTop: '4rem', borderTop: '1px solid var(--glass-border)', paddingTop: '0' }}>
+          <div className="shot-list-container" style={{ marginTop: '5rem', borderTop: '1px solid var(--glass-border)', paddingTop: '0' }}>
 
 
             {currentShots.length === 0 ? (
@@ -799,12 +799,12 @@ export default function RecordRound() {
           onChange={handleCameraChange}
         />
 
-        <div
-          className="glass-panel"
-          style={{
-            width: '144px',
-            padding: '0.4rem',
-            marginBottom: '0',
+        <div 
+          className="glass-panel" 
+          style={{ 
+            width: '115px', 
+            padding: '0.4rem', 
+            marginBottom: '0', 
             cursor: 'pointer',
             overflow: 'hidden',
             display: 'flex',
@@ -815,7 +815,7 @@ export default function RecordRound() {
           }}
           onClick={() => setShowGreenModal(true)}
         >
-          <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginBottom: '0.15rem' }}>GREEN</div>
+
           <img
             src={courses.find(c => c.id === selectedCourseId)?.green_images?.[currentHoleIdx] || `/g${currentHole.hole}.jpg`}
             alt="Green Preview"
