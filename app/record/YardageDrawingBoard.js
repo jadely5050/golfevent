@@ -173,7 +173,7 @@ export default function YardageDrawingBoard({
     } else if (transform.scale > 1) {
       isPanning.current = true;
       lastTouchPos.current = { x: clientX, y: clientY };
-    } else if (['OB', 'HZ', 'B', 'IP', 'LEFT', 'RIGHT', 'UP', 'DOWN', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(activeTool)) {
+    } else if (['OB', 'HZ', 'B', 'IP', 'X', 'LEFT', 'RIGHT', 'UP', 'DOWN', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(activeTool)) {
       const pos = screenToCanvas(x, y);
       const updated = {
         ...drawings,
@@ -281,6 +281,7 @@ export default function YardageDrawingBoard({
       case 'OB': return 'OB';
       case 'HZ': return 'HZ';
       case 'B': return 'B';
+      case 'X': return '✕';
       case 'IP': return '❤️';
       case 'FLAG': return '🚩';
       case 'P1': return '①';
@@ -339,17 +340,17 @@ export default function YardageDrawingBoard({
         {drawings.markers.map(marker => (
           <div 
             key={marker.id}
-            className={['OB', 'HZ', 'B', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type) ? 'marker-item' : 'marker-arrow'}
-            style={{ 
-              left: marker.x, 
+            className={['OB', 'HZ', 'B', 'X', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type) ? 'marker-item' : 'marker-arrow'}
+            style={{
+              left: marker.x,
               top: marker.y,
-              backgroundColor: marker.type === 'OB' ? 'red' : marker.type === 'HZ' ? 'blue' : marker.type === 'B' ? '#eab308' : (['FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+              backgroundColor: marker.type === 'OB' ? 'red' : marker.type === 'HZ' ? 'blue' : marker.type === 'B' ? '#eab308' : marker.type === 'X' ? '#ff6b35' : (['FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
               color: (['LEFT', 'RIGHT', 'UP', 'DOWN'].includes(marker.type)) ? '#eab308' : marker.type === 'IP' ? '#ff4d4f' : (['FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? 'black' : 'white',
-              padding: (['OB', 'HZ', 'B', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '2px 6px' : '0',
-              borderRadius: (['OB', 'HZ', 'B', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '4px' : '0',
-              fontSize: (['OB', 'HZ', 'B', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '0.9rem' : '1.5rem',
+              padding: (['OB', 'HZ', 'B', 'X', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '2px 6px' : '0',
+              borderRadius: (['OB', 'HZ', 'B', 'X', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '4px' : '0',
+              fontSize: (['OB', 'HZ', 'B', 'X', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '0.9rem' : '1.5rem',
               fontWeight: 'bold',
-              textShadow: !(['OB', 'HZ', 'B', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '0 0 4px rgba(0,0,0,0.8)' : 'none',
+              textShadow: !(['OB', 'HZ', 'B', 'X', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '0 0 4px rgba(0,0,0,0.8)' : 'none',
               transform: `translate(-50%, -50%) scale(${1/transform.scale})`
             }}
           >
@@ -394,7 +395,7 @@ export default function YardageDrawingBoard({
             </button>
           </div>
 
-          {!isPanelCollapsed && (mode === 'green' ? ['FLAG', 'P1', 'P2', 'P3', 'P4'] : ['OB', 'HZ', 'B', 'IP', 'LEFT', 'RIGHT', 'UP', 'DOWN']).map(t => (
+          {!isPanelCollapsed && (mode === 'green' ? ['FLAG', 'P1', 'P2', 'P3', 'P4'] : ['OB', 'HZ', 'B', 'IP', 'X', 'LEFT', 'RIGHT', 'UP', 'DOWN']).map(t => (
             <button 
               key={t}
               className={`drawing-tool-btn ${activeTool === t ? 'active' : ''}`}
