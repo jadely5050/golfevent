@@ -761,8 +761,8 @@ export default function RecordRound() {
       </div>
 
       <div className="record-side-panel">
-        <div style={{ animation: 'fadeIn 0.3s ease-out', paddingBottom: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-          <div className="glass-panel" style={{ padding: '0.4rem 0.6rem', marginTop: '-1.5rem', width: '50%', borderRadius: '12px' }}>
+        <div style={{ animation: 'fadeIn 0.3s ease-out', paddingBottom: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pointerEvents: 'none' }}>
+          <div className="glass-panel" style={{ padding: '0.4rem 0.6rem', marginTop: '-1.5rem', width: '50%', borderRadius: '12px', pointerEvents: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.3rem', marginBottom: '0.3rem' }}>
               <h2
                 style={{ margin: 0, color: 'var(--accent-neon)', fontSize: '1.1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
@@ -808,13 +808,13 @@ export default function RecordRound() {
             </div>
           </div>
 
-          <div className="shot-list-container" style={{ marginTop: '5.5rem', borderTop: '1px solid var(--glass-border)', paddingTop: '0' }}>
+          <div className="shot-list-container" style={{ marginTop: '5.5rem', borderTop: '1px solid var(--glass-border)', paddingTop: '0', pointerEvents: 'none' }}>
 
 
             {currentShots.length === 0 ? (
               <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', padding: '1rem 0' }}>등록된 샷이 없습니다.</p>
             ) : (
-              <div className="shot-list-wrapper" style={{ display: 'flex', flexDirection: 'column', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px', paddingTop: '0px', paddingBottom: '1px' }}>
+              <div className="shot-list-wrapper" style={{ display: 'flex', flexDirection: 'column', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px', paddingTop: '0px', paddingBottom: '1px', pointerEvents: 'auto' }}>
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
