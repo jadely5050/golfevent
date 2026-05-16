@@ -907,17 +907,13 @@ export default function RecordRound() {
           >
             Pt
           </button>
-          {currentHoleIdx > 0 && (
-            <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i - 1)}>
-              &lt;&lt;
-            </button>
-          )}
-          
-          {currentHoleIdx < 17 && (
-            <button className="btn btn-primary" style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} onClick={() => setCurrentHoleIdx(i => i + 1)}>
-              &gt;&gt;
-            </button>
-          )}
+          <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', opacity: currentHoleIdx === 0 ? 0.4 : 1 }} onClick={() => setCurrentHoleIdx(i => i - 1)} disabled={currentHoleIdx === 0}>
+            &lt;&lt;
+          </button>
+
+          <button className="btn btn-primary" style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', opacity: currentHoleIdx === 17 ? 0.4 : 1 }} onClick={() => setCurrentHoleIdx(i => i + 1)} disabled={currentHoleIdx === 17}>
+            &gt;&gt;
+          </button>
         </div>
 
 
