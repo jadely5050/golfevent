@@ -4,6 +4,12 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
+const CLUBS = ['W1', 'W4', 'W7', 'U3', 'U4', 'I5', 'I6', 'I7', 'I8', 'I9', 'Pi', '50', '54', '58', 'Pt'];
+const SHOTS = ['↑', '↱', '↰', '↷', '↶', 'T', 'D'];
+const LANDINGS = ['F', 'G', 'R', 'B', 'C', 'I'];
+const DIST_CTRL = ['◎', '↑', '↓'];
+const PENALTIES = ['-', 'O', 'H'];
+
 function DashboardContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
@@ -12,6 +18,8 @@ function DashboardContent() {
   const [selectedHoleNum, setSelectedHoleNum] = useState(1);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(isCloud);
+  const [editingShot, setEditingShot] = useState(null); // { holeIdx, shotIdx, draft }
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     document.body.classList.add('allow-scroll');
@@ -41,6 +49,36 @@ function DashboardContent() {
       document.body.classList.remove('allow-scroll');
     };
   }, [id, isCloud]);
+
+  const openShotEdit = (holeIdx, shotIdx) => {
+    const shot = round.holes[holeIdx].shots[shotIdx];
+    setEditingShot({ holeIdx, shotIdx, draft: { ...shot } });
+  };
+
+  const handleShotSave = async () => {
+    if (!editingShot) return;
+    const { holeIdx, shotIdx, draft } = editingShot;
+    const updatedHoles = round.holes.map((h, hi) => {
+      if (hi !== holeIdx) return h;
+      return { ...h, shots: h.shots.map((s, si) => si === shotIdx ? draft : s) };
+    });
+    const updatedRound = { ...round, holes: updatedHoles };
+    setRound(updatedRound);
+    setEditingShot(null);
+
+    setIsSaving(true);
+    try {
+      await fetch('/api/rounds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedRound),
+      });
+    } catch (err) {
+      console.error('Save error:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -360,22 +398,25 @@ function DashboardContent() {
                 <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Par {selectedHole.par}</span>
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                {selectedHole.shots.map((s, idx) => (
-                  <div key={idx} className="shot-card" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.5rem', fontSize: '0.75rem', overflow: 'hidden' }}>
-                    <div className="shot-card-header" style={{ margin: 0, minWidth: '22px', color: 'var(--accent-neon)' }}>#{idx + 1}</div>
-                    <div style={{ fontWeight: 'bold', minWidth: '32px' }}>{s.club}</div>
-                    <div style={{ opacity: 0.6, minWidth: '45px', whiteSpace: 'nowrap' }}>{s.shotType}</div>
-                    <div style={{ color: 'var(--text-secondary)', minWidth: '18px', textAlign: 'center' }}>{s.landing}</div>
-                    <div style={{ minWidth: '18px', textAlign: 'center', opacity: 0.8 }}>{s.distanceCtrl || ''}</div>
-                    <div style={{ minWidth: '22px', textAlign: 'center' }}>
-                      {(s.penalty === 'H' || s.penalty === 'O') ? <span className="penalty-text" style={{ fontSize: '0.65rem' }}>{s.penalty}</span> : ''}
+                {selectedHole.shots.map((s, idx) => {
+                  const holeIdx = round.holes.findIndex(h => h.hole === selectedHole.hole);
+                  return (
+                    <div key={idx} className="shot-card" onClick={() => openShotEdit(holeIdx, idx)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.5rem', fontSize: '0.75rem', overflow: 'hidden', cursor: 'pointer' }}>
+                      <div className="shot-card-header" style={{ margin: 0, minWidth: '22px', color: 'var(--accent-neon)' }}>#{idx + 1}</div>
+                      <div style={{ fontWeight: 'bold', minWidth: '32px' }}>{s.club}</div>
+                      <div style={{ opacity: 0.6, minWidth: '45px', whiteSpace: 'nowrap' }}>{s.shotType}</div>
+                      <div style={{ color: 'var(--text-secondary)', minWidth: '18px', textAlign: 'center' }}>{s.landing}</div>
+                      <div style={{ minWidth: '18px', textAlign: 'center', opacity: 0.8 }}>{s.distanceCtrl || ''}</div>
+                      <div style={{ minWidth: '22px', textAlign: 'center' }}>
+                        {(s.penalty === 'H' || s.penalty === 'O') ? <span className="penalty-text" style={{ fontSize: '0.65rem' }}>{s.penalty}</span> : ''}
+                      </div>
+                      <div className="mono" style={{ color: 'var(--accent-neon)', minWidth: '70px', textAlign: 'right', fontSize: '0.7rem' }}>
+                        {s.tDis || '-'}/{s.fDis || '-'}m
+                      </div>
+                      {s.memo && <div style={{ fontSize: '0.65rem', opacity: 0.5, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginLeft: '0.3rem' }}>{s.memo}</div>}
                     </div>
-                    <div className="mono" style={{ color: 'var(--accent-neon)', minWidth: '70px', textAlign: 'right', fontSize: '0.7rem' }}>
-                      {s.tDis || '-'}/{s.fDis || '-'}m
-                    </div>
-                    {s.memo && <div style={{ fontSize: '0.65rem', opacity: 0.5, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginLeft: '0.3rem' }}>{s.memo}</div>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="yardage-placeholder">
                 <div style={{ textAlign: 'center' }}>
@@ -456,15 +497,18 @@ function DashboardContent() {
               </h3>
               
               <div className="mobile-shot-list" style={{ maxHeight: '40vh', overflowY: 'auto' }}>
-                {selectedHole.shots.map((s, idx) => (
-                  <div key={idx} className="mobile-shot-card" style={{ marginBottom: '0.5rem' }}>
-                    <div style={{ color: 'var(--accent-neon)', width: '1.2rem', fontWeight: 'bold' }}>{idx + 1}</div>
-                    <div style={{ fontWeight: 'bold', width: '1.8rem' }}>{s.club}</div>
-                    <div style={{ color: 'var(--text-secondary)', flex: 1, fontSize: '0.75rem' }}>{s.shotType} {s.landing}</div>
-                    <div className="mono" style={{ color: 'var(--accent-neon)', fontSize: '0.8rem' }}>{s.fDis || s.tDis || '-'}m</div>
-                    {s.penalty !== '-' && <div className="penalty-text" style={{ marginLeft: '0.4rem', fontSize: '0.7rem' }}>{s.penalty}</div>}
-                  </div>
-                ))}
+                {selectedHole.shots.map((s, idx) => {
+                  const holeIdx = round.holes.findIndex(h => h.hole === selectedHole.hole);
+                  return (
+                    <div key={idx} className="mobile-shot-card" onClick={() => openShotEdit(holeIdx, idx)} style={{ marginBottom: '0.5rem', cursor: 'pointer' }}>
+                      <div style={{ color: 'var(--accent-neon)', width: '1.2rem', fontWeight: 'bold' }}>{idx + 1}</div>
+                      <div style={{ fontWeight: 'bold', width: '1.8rem' }}>{s.club}</div>
+                      <div style={{ color: 'var(--text-secondary)', flex: 1, fontSize: '0.75rem' }}>{s.shotType} {s.landing}</div>
+                      <div className="mono" style={{ color: 'var(--accent-neon)', fontSize: '0.8rem' }}>{s.fDis || s.tDis || '-'}m</div>
+                      {s.penalty !== '-' && <div className="penalty-text" style={{ marginLeft: '0.4rem', fontSize: '0.7rem' }}>{s.penalty}</div>}
+                    </div>
+                  );
+                })}
               </div>
               
               <div className="yardage-placeholder" style={{ aspectRatio: '1/1', marginTop: '1rem', height: '200px', margin: '1rem auto' }}>
@@ -485,6 +529,84 @@ function DashboardContent() {
           </div>
         )}
       </div>
+
+      {/* Shot 수정 모달 */}
+      {editingShot && (
+        <div className="modal-overlay" onClick={() => setEditingShot(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ border: '1px solid var(--accent-neon)', position: 'relative', maxWidth: '420px', width: '95vw' }}>
+            <button onClick={() => setEditingShot(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+            <h3 style={{ color: 'var(--accent-neon)', marginTop: 0, marginBottom: '1rem', fontSize: '1rem' }}>
+              Hole {round.holes[editingShot.holeIdx].hole} · Shot #{editingShot.shotIdx + 1} 수정
+            </h3>
+
+            <div className="form-group" style={{ marginBottom: '0.8rem' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>CLUB</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                {CLUBS.map(c => (
+                  <div key={c} className={`chip ${editingShot.draft.club === c ? 'active' : ''}`} onClick={() => setEditingShot(s => ({ ...s, draft: { ...s.draft, club: c } }))} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}>{c}</div>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '0.8rem' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>SHOT</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                {SHOTS.map(s => (
+                  <div key={s} className={`chip ${editingShot.draft.shotType === s ? 'active' : ''}`} onClick={() => setEditingShot(es => ({ ...es, draft: { ...es.draft, shotType: s } }))} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}>{s}</div>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '0.8rem' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>LANDING</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                {LANDINGS.map(l => (
+                  <div key={l} className={`chip ${editingShot.draft.landing === l ? 'active' : ''}`} onClick={() => setEditingShot(es => ({ ...es, draft: { ...es.draft, landing: l } }))} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}>{l}</div>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '0.8rem' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>DISTANCE CTRL</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                {DIST_CTRL.map(d => (
+                  <div key={d} className={`chip ${editingShot.draft.distanceCtrl === d ? 'active' : ''}`} onClick={() => setEditingShot(es => ({ ...es, draft: { ...es.draft, distanceCtrl: d } }))} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}>{d}</div>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '0.8rem' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>PENALTY</label>
+              <div style={{ display: 'flex', gap: '0.3rem' }}>
+                {PENALTIES.map(p => (
+                  <div key={p} className={`chip ${editingShot.draft.penalty === p ? 'active' : ''}`} onClick={() => setEditingShot(es => ({ ...es, draft: { ...es.draft, penalty: p } }))} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}>{p}</div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.8rem', marginBottom: '0.8rem' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>T.Dis (m)</label>
+                <input type="number" className="form-input" style={{ padding: '0.4rem', fontSize: '0.85rem', width: '100%' }} value={editingShot.draft.tDis || ''} onChange={e => setEditingShot(es => ({ ...es, draft: { ...es.draft, tDis: e.target.value } }))} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>F.Dis (m)</label>
+                <input type="number" className="form-input" style={{ padding: '0.4rem', fontSize: '0.85rem', width: '100%' }} value={editingShot.draft.fDis || ''} onChange={e => setEditingShot(es => ({ ...es, draft: { ...es.draft, fDis: e.target.value } }))} />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>MEMO</label>
+              <input type="text" className="form-input" style={{ padding: '0.4rem', fontSize: '0.85rem', width: '100%' }} value={editingShot.draft.memo || ''} onChange={e => setEditingShot(es => ({ ...es, draft: { ...es.draft, memo: e.target.value } }))} placeholder="메모 입력..." />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setEditingShot(null)}>취소</button>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleShotSave} disabled={isSaving}>{isSaving ? '저장 중...' : '저장'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style dangerouslySetInnerHTML={{
         __html: `
