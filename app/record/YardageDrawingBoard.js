@@ -392,17 +392,25 @@ export default function YardageDrawingBoard({
               {isPanelCollapsed ? '▲' : '▼'}
             </button>
 
-            <button 
+            <button
               className={`drawing-control-btn ${activeTool === 'pencil' ? 'active' : ''}`}
               style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
-              onClick={(e) => { 
-                e.preventDefault(); 
+              onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                setActiveTool('pencil'); 
+                setActiveTool('pencil');
               }}
             >
               ✎
             </button>
+            <input
+              type="color"
+              className="color-picker"
+              style={{ width: '38px', height: '38px' }}
+              value={activeColor}
+              onChange={(e) => setActiveColor(e.target.value)}
+              onPointerDown={stopPropagation}
+            />
           </div>
 
           {!isPanelCollapsed && (mode === 'green' ? ['FLAG', 'P1', 'P2', 'P3', 'P4'] : ['OB', 'HZ', 'B', 'IP', 'X', 'LEFT', 'RIGHT', 'UP', 'DOWN']).map(t => (
@@ -431,25 +439,17 @@ export default function YardageDrawingBoard({
       {!readOnly && (
       <div className="drawing-control-bar" style={{ pointerEvents: 'none' }}>
         <div style={{ display: 'flex', gap: '0.5rem', pointerEvents: 'auto' }} onPointerDown={stopPropagation}>
-          <button 
+          <button
             className={`drawing-control-btn ${activeTool === 'eraser' ? 'active' : ''}`}
             style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
-            onClick={(e) => { 
-              e.preventDefault(); 
+            onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
-              setActiveTool(prev => prev === 'eraser' ? 'pencil' : 'eraser'); 
+              setActiveTool(prev => prev === 'eraser' ? 'pencil' : 'eraser');
             }}
           >
             지우개
           </button>
-          <input
-            type="color"
-            className="color-picker"
-            style={{ width: '30px', height: '30px' }}
-            value={activeColor}
-            onChange={(e) => setActiveColor(e.target.value)}
-            onPointerDown={stopPropagation}
-          />
         </div>
       </div>
       )}
