@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import HolePlaceholder from './HolePlaceholder';
 
 const CLUBS = ['W1', 'W4', 'W7', 'U3', 'U4', 'I5', 'I6', 'I7', 'I8', 'I9', 'Pi', '50', '54', '58', 'Pt'];
 const SHOTS = ['↑', '↱', '↰', '↷', '↶', 'T', 'D'];
@@ -20,6 +21,34 @@ function DashboardContent() {
   const [isLoading, setIsLoading] = useState(isCloud);
   const [editingShot, setEditingShot] = useState(null); // { holeIdx, shotIdx, draft }
   const [isSaving, setIsSaving] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [isSavingPhoto, setIsSavingPhoto] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/courses')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => Array.isArray(data) && setCourses(data))
+      .catch(() => {});
+  }, []);
+
+  const handlePhotoHoleChange = async (imageId, newHole) => {
+    if (!round) return;
+    const updatedImages = (round.images || []).map(i => i.id === imageId ? { ...i, hole: newHole } : i);
+    const updatedRound = { ...round, images: updatedImages };
+    setRound(updatedRound);
+    setIsSavingPhoto(true);
+    try {
+      await fetch('/api/rounds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedRound)
+      });
+    } catch (err) {
+      console.error('Photo hole change save error:', err);
+    } finally {
+      setIsSavingPhoto(false);
+    }
+  };
 
   useEffect(() => {
     document.body.classList.add('allow-scroll');
@@ -418,11 +447,14 @@ function DashboardContent() {
                   );
                 })}
               </div>
-              <div className="yardage-placeholder">
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.5rem' }}>🗺️</div>
-                  <div style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>Yardage & Drawings</div>
-                </div>
+              <div className="yardage-placeholder" style={{ position: 'relative', overflow: 'hidden' }}>
+                <HolePlaceholder
+                  hole={selectedHole}
+                  round={round}
+                  courses={courses}
+                  onPhotoHoleChange={handlePhotoHoleChange}
+                  isSavingPhoto={isSavingPhoto}
+                />
               </div>
             </div>
           </div>
@@ -511,11 +543,14 @@ function DashboardContent() {
                 })}
               </div>
               
-              <div className="yardage-placeholder" style={{ aspectRatio: '1/1', marginTop: '1rem', height: '200px', margin: '1rem auto' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.5rem' }}>🗺️</div>
-                  <div style={{ fontSize: '0.7rem', marginTop: '0.5rem' }}>Yardage & Drawing</div>
-                </div>
+              <div className="yardage-placeholder" style={{ position: 'relative', overflow: 'hidden', marginTop: '1rem', height: '250px', width: '100%' }}>
+                <HolePlaceholder
+                  hole={selectedHole}
+                  round={round}
+                  courses={courses}
+                  onPhotoHoleChange={handlePhotoHoleChange}
+                  isSavingPhoto={isSavingPhoto}
+                />
               </div>
 
               <button 

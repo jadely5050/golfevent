@@ -774,12 +774,11 @@ p { margin: 0 0 1rem 0; line-height: 1.5; color: var(--text-secondary); }
   aspect-ratio: 9/16;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   margin-top: 1.5rem;
   color: var(--text-secondary);
-  border: 2px dashed var(--glass-border);
+  border: 1px solid var(--glass-border);
+  position: relative;
+  overflow: hidden;
 }
 
 /* Mobile Dashboard Styles */

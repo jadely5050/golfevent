@@ -2,14 +2,15 @@
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 
-export default function YardageDrawingBoard({ 
-  holeNumber, 
-  drawingData, 
-  onSave, 
-  obCount = 0, 
+export default function YardageDrawingBoard({
+  holeNumber,
+  drawingData,
+  onSave,
+  obCount = 0,
   hazardCount = 0,
   mode = 'yardage',
-  imageUrl = null
+  imageUrl = null,
+  readOnly = false
 }) {
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(true);
   const [activeTool, setActiveTool] = useState('pencil');
@@ -159,6 +160,14 @@ export default function YardageDrawingBoard({
     const rect = containerRef.current.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
+
+    if (readOnly) {
+      if (transform.scale > 1) {
+        isPanning.current = true;
+        lastTouchPos.current = { x: clientX, y: clientY };
+      }
+      return;
+    }
 
     if (activeTool === 'pencil') {
       isDrawing.current = true;
@@ -371,6 +380,7 @@ export default function YardageDrawingBoard({
         onTouchEnd={(e) => { e.preventDefault(); handleEnd(); }}
       />
 
+      {!readOnly && (
       <div className="drawing-marker-bar" style={{ pointerEvents: 'none' }}>
         <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '0.3rem', pointerEvents: 'auto' }} onPointerDown={stopPropagation}>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -416,7 +426,9 @@ export default function YardageDrawingBoard({
           ))}
         </div>
       </div>
+      )}
 
+      {!readOnly && (
       <div className="drawing-control-bar" style={{ pointerEvents: 'none' }}>
         <div style={{ display: 'flex', gap: '0.5rem', pointerEvents: 'auto' }} onPointerDown={stopPropagation}>
           <button 
@@ -430,16 +442,17 @@ export default function YardageDrawingBoard({
           >
             지우개
           </button>
-          <input 
-            type="color" 
-            className="color-picker" 
+          <input
+            type="color"
+            className="color-picker"
             style={{ width: '30px', height: '30px' }}
-            value={activeColor} 
-            onChange={(e) => setActiveColor(e.target.value)} 
+            value={activeColor}
+            onChange={(e) => setActiveColor(e.target.value)}
             onPointerDown={stopPropagation}
           />
         </div>
       </div>
+      )}
     </div>
   );
 }
