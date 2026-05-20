@@ -108,7 +108,8 @@ export default function RecordRound() {
     shots: [],
     drawings: { paths: [], markers: [] },
     greenDrawings: { paths: [], markers: [] },
-    pinCoords: null
+    pinCoords: null,
+    teeCoords: null
   }));
 
   const [holes, setHoles] = useState(initialHoles);
@@ -466,6 +467,19 @@ export default function RecordRound() {
       hole.pinCoords = { lat: loc.lat, lng: loc.lng, timestamp: new Date().toISOString() };
       setHoles(newHoles);
       alert(`${hole.hole}번 홀 핀 위치가 저장되었습니다.`);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleSaveTeeLocation = async () => {
+    try {
+      const loc = await getCurrentLocation();
+      const newHoles = [...holes];
+      const hole = newHoles[currentHoleIdx];
+      hole.teeCoords = { lat: loc.lat, lng: loc.lng, timestamp: new Date().toISOString() };
+      setHoles(newHoles);
+      alert(`${hole.hole}번 홀 티 위치가 저장되었습니다.`);
     } catch (err) {
       alert(err.message);
     }
@@ -893,16 +907,23 @@ export default function RecordRound() {
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <button 
-            className="btn btn-secondary" 
-            style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: '#ff4d4f', color: 'white', fontWeight: 'bold' }} 
+          <button
+            className="btn btn-secondary"
+            style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: '#ff4d4f', color: 'white', fontWeight: 'bold' }}
             onClick={handleSaveHoleLocation}
           >
             Ho
           </button>
-          <button 
-            className="btn btn-secondary" 
-            style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: '#1890ff', color: 'white', fontWeight: 'bold' }} 
+          <button
+            className="btn btn-secondary"
+            style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: '#a855f7', color: 'white', fontWeight: 'bold' }}
+            onClick={handleSaveTeeLocation}
+          >
+            T
+          </button>
+          <button
+            className="btn btn-secondary"
+            style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: '#1890ff', color: 'white', fontWeight: 'bold' }}
             onClick={handleQuickPutt}
           >
             Pt
