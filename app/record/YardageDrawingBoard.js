@@ -45,6 +45,9 @@ export default function YardageDrawingBoard({
     const H = canvas.height;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    const xScale = drawings.recordedWidth  ? canvas.width  / drawings.recordedWidth  : 1;
+    const yScale = drawings.recordedHeight ? canvas.height / drawings.recordedHeight : 1;
+
     ctx.save();
     ctx.translate(transform.x, transform.y);
     if (mode === 'green') {
@@ -65,9 +68,9 @@ export default function YardageDrawingBoard({
       ctx.lineWidth = 3 / transform.scale;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.moveTo(path.points[0].x, path.points[0].y);
+      ctx.moveTo(path.points[0].x * xScale, path.points[0].y * yScale);
       for (let i = 1; i < path.points.length; i++) {
-        ctx.lineTo(path.points[i].x, path.points[i].y);
+        ctx.lineTo(path.points[i].x * xScale, path.points[i].y * yScale);
       }
       ctx.stroke();
     });
@@ -189,7 +192,7 @@ export default function YardageDrawingBoard({
         markers: [...drawings.markers, { id: Date.now(), x: pos.x, y: pos.y, type: activeTool, color: activeColor }]
       };
       setDrawings(updated);
-      onSave(updated);
+      doSave(updated);
     }
   };
 
@@ -215,13 +218,18 @@ export default function YardageDrawingBoard({
     }
   };
 
+  const doSave = (data) => {
+    if (!containerRef.current) { onSave(data); return; }
+    onSave({
+      ...data,
+      recordedWidth: containerRef.current.clientWidth,
+      recordedHeight: containerRef.current.clientHeight,
+    });
+  };
+
   const handleEnd = () => {
     if (isDrawing.current || isErasing.current) {
-      // Need to use latest drawings from state? 
-      // Actually setDrawings is async, so we use a functional update to get latest if needed.
-      // But here we can just let the re-render handle it and call onSave with drawings.
-      // To be safe, we can use a ref for drawings too, but let's try calling onSave in the next tick or using useEffect.
-      onSave(drawings);
+      doSave(drawings);
     }
     isDrawing.current = false;
     isErasing.current = false;
@@ -346,13 +354,18 @@ export default function YardageDrawingBoard({
           />
         )}
         
-        {drawings.markers.map(marker => (
-          <div 
+        {(() => {
+          const cW = containerRef.current?.clientWidth  || drawings.recordedWidth  || 1;
+          const cH = containerRef.current?.clientHeight || drawings.recordedHeight || 1;
+          const mxS = drawings.recordedWidth  ? cW / drawings.recordedWidth  : 1;
+          const myS = drawings.recordedHeight ? cH / drawings.recordedHeight : 1;
+          return drawings.markers.map(marker => (
+          <div
             key={marker.id}
             className={['OB', 'HZ', 'B', 'X', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type) ? 'marker-item' : 'marker-arrow'}
             style={{
-              left: marker.x,
-              top: marker.y,
+              left: marker.x * mxS,
+              top: marker.y * myS,
               backgroundColor: marker.type === 'OB' ? 'red' : marker.type === 'HZ' ? 'blue' : marker.type === 'B' ? '#eab308' : marker.type === 'X' ? '#ff6b35' : (['FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
               color: (['LEFT', 'RIGHT', 'UP', 'DOWN'].includes(marker.type)) ? '#eab308' : marker.type === 'IP' ? '#ff4d4f' : (['FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? 'black' : 'white',
               padding: (['OB', 'HZ', 'B', 'X', 'FLAG', 'P1', 'P2', 'P3', 'P4'].includes(marker.type)) ? '2px 6px' : '0',
@@ -365,7 +378,8 @@ export default function YardageDrawingBoard({
           >
             {getMarkerSymbol(marker.type)}
           </div>
-        ))}
+          ));
+        })()}
       </div>
 
       <canvas
