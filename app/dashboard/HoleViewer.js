@@ -1,29 +1,54 @@
 'use client';
 
+import { useState } from 'react';
 import DrawingView from './DrawingView';
 import HoleMap from './HoleMap';
 
 export default function HoleViewer({ hole, round, courses, mode, onModeChange, onPhotoClick, onExpand }) {
+  const [mapType, setMapType] = useState('normal');
+
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
       {mode === 'drawing'
         ? <DrawingView hole={hole} round={round} courses={courses} />
-        : <HoleMap hole={hole} round={round} onPhotoClick={onPhotoClick} />}
+        : <HoleMap hole={hole} round={round} onPhotoClick={onPhotoClick} mapType={mapType} />}
 
-      {/* Tab toggle (top-right) */}
+      {/* Tab toggles (top-right) */}
       <div style={{
         position: 'absolute', top: '8px', right: '8px', zIndex: 12,
-        display: 'flex', background: 'rgba(0,0,0,0.65)',
-        border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', overflow: 'hidden'
+        display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end'
       }}>
-        <button
-          onClick={(e) => { e.stopPropagation(); onModeChange('drawing'); }}
-          style={tabBtn(mode === 'drawing')}
-        >그림</button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onModeChange('map'); }}
-          style={tabBtn(mode === 'map')}
-        >지도</button>
+        {/* 그림 / 지도 */}
+        <div style={{
+          display: 'flex', background: 'rgba(0,0,0,0.65)',
+          border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', overflow: 'hidden'
+        }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); onModeChange('drawing'); }}
+            style={tabBtn(mode === 'drawing')}
+          >그림</button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onModeChange('map'); }}
+            style={tabBtn(mode === 'map')}
+          >지도</button>
+        </div>
+
+        {/* 일반 / 위성 (지도 모드일 때만) */}
+        {mode === 'map' && (
+          <div style={{
+            display: 'flex', background: 'rgba(0,0,0,0.65)',
+            border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', overflow: 'hidden'
+          }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setMapType('normal'); }}
+              style={tabBtn(mapType === 'normal')}
+            >일반</button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setMapType('satellite'); }}
+              style={tabBtn(mapType === 'satellite')}
+            >위성</button>
+          </div>
+        )}
       </div>
 
       {/* Expand button (above zoom controls when in map mode) */}

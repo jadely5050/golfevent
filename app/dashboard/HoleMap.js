@@ -26,7 +26,7 @@ function circledNumber(n) {
   return String(n);
 }
 
-export default function HoleMap({ hole, round, onPhotoClick }) {
+export default function HoleMap({ hole, round, onPhotoClick, mapType = 'normal' }) {
   const wrapperRef = useRef(null);
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
@@ -95,6 +95,15 @@ export default function HoleMap({ hole, round, onPhotoClick }) {
     mapRef.current = map;
   }, [sdkReady]);
 
+  // Map type (normal / satellite)
+  useEffect(() => {
+    if (!mapRef.current || !window.kakao) return;
+    const id = mapType === 'satellite'
+      ? window.kakao.maps.MapTypeId.SKYVIEW
+      : window.kakao.maps.MapTypeId.ROADMAP;
+    mapRef.current.setMapTypeId(id);
+  }, [mapType, sdkReady]);
+
   // Relayout on container resize
   useEffect(() => {
     if (!mapRef.current || !wrapperRef.current) return;
@@ -127,7 +136,7 @@ export default function HoleMap({ hole, round, onPhotoClick }) {
         background: #10b981; color: white; border-radius: 50%;
         width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
         font-weight: bold; font-size: 14px; cursor: pointer;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.4); border: 2px solid white;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.4); border: 3px solid #ef4444;
         user-select: none;
       `;
       el.textContent = circledNumber(p.num);
