@@ -901,10 +901,11 @@ export default function RecordRound() {
           >
             Pt
           </button>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', opacity: currentHoleIdx === 0 ? 0.4 : 1 }} onClick={() => setCurrentHoleIdx(i => i - 1)} disabled={currentHoleIdx === 0}>
             &lt;&lt;
           </button>
-
           <button className="btn btn-primary" style={{ width: 'auto', padding: '0.75rem 1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', opacity: currentHoleIdx === 17 ? 0.4 : 1 }} onClick={() => setCurrentHoleIdx(i => i + 1)} disabled={currentHoleIdx === 17}>
             &gt;&gt;
           </button>
