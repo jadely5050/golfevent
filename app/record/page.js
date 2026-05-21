@@ -759,70 +759,43 @@ export default function RecordRound() {
       </div>
 
 
-      <div className="round-info-panel">
-        <div className="glass-panel" style={{ padding: '0.75rem', marginBottom: '0', borderRadius: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>{roundTitle}</h3>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{course}</div>
-            </div>
-            <button onClick={openParSettings} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.1rem', padding: 0 }}>⚙️</button>
-          </div>
-          <div style={{ color: 'white', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            TOTAL: <strong style={{ color: 'var(--accent-neon)' }}>{totalRoundScore}</strong> / {totalRoundPar}
+      {/* 상단 통합 바 */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+        background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: '1px solid var(--glass-border)',
+        padding: '0.3rem 0.75rem',
+        display: 'flex', alignItems: 'center', gap: '0.5rem'
+      }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 'bold', color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roundTitle || course}</div>
+          <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+            TOT <strong style={{ color: 'var(--accent-neon)' }}>{totalRoundScore}</strong>/{totalRoundPar}
           </div>
         </div>
+        <div style={{ width: '1px', height: '28px', background: 'var(--glass-border)', flexShrink: 0 }} />
+        <button
+          onClick={() => setShowHoleSelectModal(true)}
+          style={{ background: 'transparent', border: 'none', color: 'var(--accent-neon)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold', padding: '0 0.1rem', flexShrink: 0 }}
+        >{currentHole.hole}H ▾</button>
+        {[
+          { label: 'PAR', value: currentHole.par, color: 'white' },
+          { label: 'SCORE', value: currentHoleScore, color: currentHoleScore > 0 && currentHoleScore <= currentHole.par ? 'var(--accent-neon)' : 'white' },
+          { label: 'PUTT', value: currentHolePutts, color: 'white' },
+          { label: 'H', value: totalHazardCount, color: 'white' },
+          { label: 'O', value: totalObCount, color: 'white' },
+        ].map(({ label, value, color }) => (
+          <div key={label} style={{ textAlign: 'center', flexShrink: 0 }}>
+            <div style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', lineHeight: 1 }}>{label}</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 'bold', color, lineHeight: 1.2 }}>{value}</div>
+          </div>
+        ))}
+        <button onClick={openParSettings} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: 0, flexShrink: 0 }}>⚙️</button>
       </div>
 
       <div className="record-side-panel">
         <div style={{ animation: 'fadeIn 0.3s ease-out', paddingBottom: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', pointerEvents: 'none' }}>
-          <div className="glass-panel" style={{ padding: '0.4rem 0.6rem', marginTop: '-1.5rem', width: '50%', borderRadius: '12px', pointerEvents: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.3rem', marginBottom: '0.3rem' }}>
-              <h2
-                style={{ margin: 0, color: 'var(--accent-neon)', fontSize: '1.1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                onClick={() => setShowHoleSelectModal(true)}
-              >
-                {currentHole.hole}H <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>▾</span>
-              </h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'white' }}>PAR {currentHole.par}</div>
-                </div>
-              </div>
-            </div>
-
-
-            <div style={{ paddingBottom: '0.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <div>
-                    <span style={{ color: 'white', fontSize: '0.7rem', display: 'block', marginBottom: '0.1rem' }}>SCORE</span>
-                    <strong style={{ fontSize: '1.2rem', color: currentHoleScore <= currentHole.par && currentHoleScore > 0 ? 'var(--accent-neon)' : 'white' }}>
-                      {currentHoleScore}
-                    </strong>
-                  </div>
-                  <div>
-                    <span style={{ color: 'white', fontSize: '0.7rem', display: 'block', marginBottom: '0.1rem' }}>PUTT</span>
-                    <strong style={{ fontSize: '1.2rem', color: 'white' }}>
-                      {currentHolePutts}
-                    </strong>
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right', display: 'flex', gap: '0.75rem' }}>
-                  <div>
-                    <span style={{ color: 'white', fontSize: '0.7rem', display: 'block', marginBottom: '0.1rem' }}>H</span>
-                    <strong style={{ fontSize: '1.2rem', color: 'white' }}>{totalHazardCount}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: 'white', fontSize: '0.7rem', display: 'block', marginBottom: '0.1rem' }}>O</span>
-                    <strong style={{ fontSize: '1.2rem', color: 'white' }}>{totalObCount}</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="shot-list-container" style={{ marginTop: '5.5rem', borderTop: '1px solid var(--glass-border)', paddingTop: '0', pointerEvents: 'none' }}>
+          <div className="shot-list-container" style={{ width: '100%', marginTop: '0', borderTop: '1px solid var(--glass-border)', paddingTop: '0', pointerEvents: 'none' }}>
 
 
             {currentShots.length === 0 ? (

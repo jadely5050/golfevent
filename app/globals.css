@@ -86,7 +86,7 @@ body.allow-scroll {
   height: 100dvh;
   overflow-y: auto;
   background: transparent;
-  padding: 1.5rem 0.75rem;
+  padding: 54px 0.75rem 1.5rem;
   display: flex;
   flex-direction: column;
   z-index: 5;
