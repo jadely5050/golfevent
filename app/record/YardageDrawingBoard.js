@@ -45,8 +45,10 @@ export default function YardageDrawingBoard({
     const H = canvas.height;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const xScale = drawings.recordedWidth  ? canvas.width  / drawings.recordedWidth  : 1;
-    const yScale = drawings.recordedHeight ? canvas.height / drawings.recordedHeight : 1;
+    const fallbackW = typeof window !== 'undefined' ? window.innerWidth : canvas.width;
+    const fallbackH = typeof window !== 'undefined' ? window.innerHeight * 0.96 : canvas.height;
+    const xScale = canvas.width  / (drawings.recordedWidth  || fallbackW);
+    const yScale = canvas.height / (drawings.recordedHeight || fallbackH);
 
     ctx.save();
     ctx.translate(transform.x, transform.y);
@@ -357,8 +359,10 @@ export default function YardageDrawingBoard({
         {(() => {
           const cW = containerRef.current?.clientWidth  || drawings.recordedWidth  || 1;
           const cH = containerRef.current?.clientHeight || drawings.recordedHeight || 1;
-          const mxS = drawings.recordedWidth  ? cW / drawings.recordedWidth  : 1;
-          const myS = drawings.recordedHeight ? cH / drawings.recordedHeight : 1;
+          const fallbackW = typeof window !== 'undefined' ? window.innerWidth : cW;
+          const fallbackH = typeof window !== 'undefined' ? window.innerHeight * 0.96 : cH;
+          const mxS = cW / (drawings.recordedWidth  || fallbackW);
+          const myS = cH / (drawings.recordedHeight || fallbackH);
           return drawings.markers.map(marker => (
           <div
             key={marker.id}
