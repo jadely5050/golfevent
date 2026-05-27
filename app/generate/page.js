@@ -6,7 +6,7 @@ import { compressImage } from '../utils/imageCompression';
 
 const DEFAULT_PAR = [4, 4, 4, 3, 4, 3, 5, 4, 5, 4, 4, 5, 4, 3, 4, 5, 3, 4];
 const RESERVED = ['api', 'go', 'generate', 'dashboard', 'record', '_next', 'public', 'static'];
-const DEFAULT_GROUP = () => ({ course: '', time: '', players: '', start: 'valley', startLabel: '' });
+const DEFAULT_GROUP = () => ({ _id: Date.now() + Math.random(), course: '', time: '', players: '', start: 'valley', startLabel: '' });
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
@@ -171,7 +171,7 @@ export default function GeneratePage() {
         setMapKakao(event.map_links?.kakao || '');
         setMapTmap(event.map_links?.tmap || '');
         setSchedule(event.schedule?.length ? event.schedule : [{ time: '', text: '' }]);
-        setGroups(event.groups?.length ? event.groups.map(g => ({ ...DEFAULT_GROUP(), ...g })) : [DEFAULT_GROUP()]);
+        setGroups(event.groups?.length ? event.groups.map(g => ({ ...DEFAULT_GROUP(), ...g, _id: g._id || Date.now() + Math.random() })) : [DEFAULT_GROUP()]);
         setAwardText(event.award_text || '');
         setSettlementText(event.settlement_text || '');
         if (event.lunch) {
@@ -404,7 +404,7 @@ export default function GeneratePage() {
         <Section title="조편성" badge={`${groups.length}개`}>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>코스명 · 시간 · 참석자 · 코스라벨(IN/OUT 직접입력) · 시작홀</div>
           {groups.map((g, i) => (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr 70px 44px auto', gap: '4px', marginBottom: '6px', alignItems: 'center' }}>
+            <div key={g._id ?? i} style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr 70px 44px auto', gap: '4px', marginBottom: '6px', alignItems: 'center' }}>
               <input style={inp} value={g.course} onChange={e => updateGroup(i, 'course', e.target.value)} placeholder="밸리" />
               <input style={inp} value={g.time} onChange={e => updateGroup(i, 'time', e.target.value)} placeholder="07:59" />
               <input style={inp} value={g.players} onChange={e => updateGroup(i, 'players', e.target.value)} placeholder="홍길동/김철수/이영희/박민수" />
@@ -418,6 +418,7 @@ export default function GeneratePage() {
               {/* 시작홀 토글: 1H ↔ 10H */}
               <button
                 type="button"
+                onMouseDown={e => e.preventDefault()}
                 onClick={() => updateGroup(i, 'start', g.start === 'valley' ? 'lake' : 'valley')}
                 style={{
                   height: '100%', padding: '0 4px',

@@ -31,13 +31,17 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
   const yardageSrc = yardageMap[currentHole.hole] || null;
   const greenImgSrc = greenMap[currentHole.hole] || null;
 
+  // Derive custom course section labels from groups' startLabels
+  const valleyLabel = groups?.find(g => (g.start || 'valley') === 'valley')?.startLabel?.trim() || '밸리';
+  const lakeLabel   = groups?.find(g => g.start === 'lake')?.startLabel?.trim() || '레이크';
+
   const getDisplayHoleNumber = (actualHole) => {
     if (startCourse === 'valley') return actualHole;
     if (actualHole >= 10) return actualHole - 9;
     return actualHole + 9;
   };
 
-  const courseSectionName = (hole) => hole <= 9 ? '밸리' : '레이크';
+  const courseSectionName = (hole) => hole <= 9 ? valleyLabel : lakeLabel;
 
   // App height for iOS Safari
   useEffect(() => {
@@ -144,8 +148,8 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '320px' }}>
             <h3 style={{ marginTop: 0, color: 'var(--accent-neon)', textAlign: 'center' }}>홀 선택</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '4px' }}>
-              <div style={{ textAlign: 'center', fontSize: '0.7rem', fontWeight: 'bold', color: startCourse === 'valley' ? 'var(--accent-neon)' : '#38bdf8', paddingBottom: '4px', borderBottom: `1px solid ${startCourse === 'valley' ? 'rgba(16,185,129,0.3)' : 'rgba(56,189,248,0.3)'}` }}>{startCourse === 'valley' ? 'VALLEY' : 'LAKE'}</div>
-              <div style={{ textAlign: 'center', fontSize: '0.7rem', fontWeight: 'bold', color: startCourse === 'valley' ? '#38bdf8' : 'var(--accent-neon)', paddingBottom: '4px', borderBottom: `1px solid ${startCourse === 'valley' ? 'rgba(56,189,248,0.3)' : 'rgba(16,185,129,0.3)'}` }}>{startCourse === 'valley' ? 'LAKE' : 'VALLEY'}</div>
+              <div style={{ textAlign: 'center', fontSize: '0.7rem', fontWeight: 'bold', color: startCourse === 'valley' ? 'var(--accent-neon)' : '#38bdf8', paddingBottom: '4px', borderBottom: `1px solid ${startCourse === 'valley' ? 'rgba(16,185,129,0.3)' : 'rgba(56,189,248,0.3)'}` }}>{startCourse === 'valley' ? valleyLabel : lakeLabel}</div>
+              <div style={{ textAlign: 'center', fontSize: '0.7rem', fontWeight: 'bold', color: startCourse === 'valley' ? '#38bdf8' : 'var(--accent-neon)', paddingBottom: '4px', borderBottom: `1px solid ${startCourse === 'valley' ? 'rgba(56,189,248,0.3)' : 'rgba(16,185,129,0.3)'}` }}>{startCourse === 'valley' ? lakeLabel : valleyLabel}</div>
             </div>
             <div style={{ display: 'grid', gridTemplateRows: 'repeat(9, auto)', gridAutoFlow: 'column', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
               {(startCourse === 'valley' ? initialHoles : [...initialHoles.slice(9), ...initialHoles.slice(0, 9)]).map((h, i) => (
@@ -186,8 +190,8 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
               )) : (
                 // 조편성 없으면 간단 시작
                 <>
-                  <button onClick={() => handleGroupSelect({ start: 'valley' })} style={{ padding: '1rem', borderRadius: '14px', border: '1px solid var(--accent-neon)', background: 'rgba(16,185,129,0.1)', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}>🟢 밸리 코스 시작 (1홀)</button>
-                  <button onClick={() => handleGroupSelect({ start: 'lake' })} style={{ padding: '1rem', borderRadius: '14px', border: '1px solid #38bdf8', background: 'rgba(56,189,248,0.1)', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}>🔵 레이크 코스 시작 (10홀)</button>
+                  <button onClick={() => handleGroupSelect({ start: 'valley' })} style={{ padding: '1rem', borderRadius: '14px', border: '1px solid var(--accent-neon)', background: 'rgba(16,185,129,0.1)', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}>🟢 {valleyLabel} 코스 시작 (1홀)</button>
+                  <button onClick={() => handleGroupSelect({ start: 'lake' })} style={{ padding: '1rem', borderRadius: '14px', border: '1px solid #38bdf8', background: 'rgba(56,189,248,0.1)', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}>🔵 {lakeLabel} 코스 시작 (10홀)</button>
                 </>
               )}
             </div>
