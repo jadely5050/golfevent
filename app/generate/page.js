@@ -304,7 +304,10 @@ export default function GeneratePage() {
         body: JSON.stringify({ source: parsed, valleyCourseName, lakeCourseName }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gemini 변환 실패');
+      if (!res.ok) {
+        const errMsg = data.detail ? `${data.error || 'Gemini 변환 실패'} — ${data.detail}` : (data.error || 'Gemini 변환 실패');
+        throw new Error(errMsg);
+      }
       const valley = Array.isArray(data.valley) ? data.valley : [];
       const lake = Array.isArray(data.lake) ? data.lake : [];
       const next = Array.from({ length: 18 }, (_, i) => ({ hole: i + 1, tip: '' }));

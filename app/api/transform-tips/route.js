@@ -60,6 +60,7 @@ export async function POST(request) {
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 0.1,
+        thinkingConfig: { thinkingBudget: 0 },
       },
     };
 
@@ -71,13 +72,17 @@ export async function POST(request) {
 
     if (!res.ok) {
       const errText = await res.text();
-      return NextResponse.json({ error: `Gemini API 오류: ${res.status}`, detail: errText.slice(0, 500) }, { status: 502 });
+      console.error('Gemini API error', res.status, errText.slice(0, 1000));
+      return NextResponse.json({ error: `Gemini API 오류 ${res.status}`, detail: errText.slice(0, 800) }, { status: 502 });
     }
 
     const data = await res.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) {
-      return NextResponse.json({ error: 'Gemini 응답 형식 오류', detail: JSON.stringify(data).slice(0, 500) }, { status: 502 });
+      const finishReason = data?.candidates?.[0]?.finishReason;
+      const promptFeedback = data?.promptFeedback;
+      console.error('Gemini empty response', { finishReason, promptFeedback, sample: JSON.stringify(data).slice(0, 800) });
+      return NextResponse.json({ error: 'Gemini 응답이 비어있습니다', detail: JSON.stringify({ finishReason, promptFeedback }).slice(0, 800) }, { status: 502 });
     }
 
     let parsed;
