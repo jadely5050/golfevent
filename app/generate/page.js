@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { compressImage } from '../utils/imageCompression';
 
 const DEFAULT_PAR = [4, 4, 4, 3, 4, 3, 5, 4, 5, 4, 4, 5, 4, 3, 4, 5, 3, 4];
 const RESERVED = ['api', 'go', 'generate', 'dashboard', 'record', '_next', 'public', 'static'];
+const DEFAULT_GROUP = () => ({ course: '', time: '', players: '', start: 'valley', startLabel: '' });
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
@@ -36,11 +37,15 @@ const inp = {
   borderRadius: '8px', padding: '0.65rem 0.8rem', color: 'white', fontSize: '0.9rem',
 };
 
-function ImageSlot({ hole, file, onChange }) {
+// Accepts File (new) or string URL (existing) or null
+function ImageSlot({ hole, fileOrUrl, onChange }) {
   const ref = useRef(null);
-  const preview = file ? URL.createObjectURL(file) : null;
+  const isFile = fileOrUrl instanceof File;
+  const isUrl = typeof fileOrUrl === 'string' && fileOrUrl.length > 0;
+  const preview = isFile ? URL.createObjectURL(fileOrUrl) : (isUrl ? fileOrUrl : null);
+
   return (
-    <div onClick={() => ref.current?.click()} style={{ border: `1px solid ${file ? 'var(--accent-neon)' : 'var(--glass-border)'}`, borderRadius: '8px', overflow: 'hidden', cursor: 'pointer', background: 'rgba(0,0,0,0.2)', position: 'relative', aspectRatio: '9/16' }}>
+    <div onClick={() => ref.current?.click()} style={{ border: `1px solid ${preview ? 'var(--accent-neon)' : 'var(--glass-border)'}`, borderRadius: '8px', overflow: 'hidden', cursor: 'pointer', background: 'rgba(0,0,0,0.2)', position: 'relative', aspectRatio: '9/16' }}>
       <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files[0] && onChange(e.target.files[0])} />
       {preview ? (
         <img src={preview} alt={`H${hole}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -50,12 +55,14 @@ function ImageSlot({ hole, file, onChange }) {
           <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>H{hole}</span>
         </div>
       )}
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, textAlign: 'center', fontSize: '0.6rem', background: 'rgba(0,0,0,0.6)', color: file ? 'var(--accent-neon)' : 'var(--text-secondary)', padding: '1px 0' }}>H{hole}</div>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, textAlign: 'center', fontSize: '0.6rem', background: isFile ? 'rgba(16,185,129,0.7)' : 'rgba(0,0,0,0.6)', color: 'white', padding: '1px 0' }}>
+        H{hole}{isFile ? ' ✓' : ''}
+      </div>
     </div>
   );
 }
 
-function ImageGrid({ files, onFileChange, label, bulkRef }) {
+function ImageGrid({ files, onFileChange, bulkRef }) {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -71,7 +78,7 @@ function ImageGrid({ files, onFileChange, label, bulkRef }) {
       }} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px' }}>
         {files.map((f, i) => (
-          <ImageSlot key={i} hole={i + 1} file={f} onChange={file => onFileChange(i, file)} />
+          <ImageSlot key={i} hole={i + 1} fileOrUrl={f} onChange={file => onFileChange(i, file)} />
         ))}
       </div>
     </>
@@ -82,10 +89,18 @@ function ImageGrid({ files, onFileChange, label, bulkRef }) {
 
 export default function GeneratePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editSlug = searchParams.get('edit');
+  const [isEditing, setIsEditing] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+
+  // Existing image records (for key preservation on edit)
+  const [existingYardageImages, setExistingYardageImages] = useState([]);
+  const [existingGreenImages, setExistingGreenImages] = useState([]);
 
   // Basic
   const [slug, setSlug] = useState('');
-  const [slugStatus, setSlugStatus] = useState(null); // null | checking | available | exists | invalid
+  const [slugStatus, setSlugStatus] = useState(null);
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [eventDate, setEventDate] = useState('');
@@ -102,7 +117,7 @@ export default function GeneratePage() {
 
   // Schedule & Groups
   const [schedule, setSchedule] = useState([{ time: '', text: '' }]);
-  const [groups, setGroups] = useState([{ course: '', time: '', players: '', start: 'valley' }]);
+  const [groups, setGroups] = useState([DEFAULT_GROUP()]);
 
   // Award
   const [awardText, setAwardText] = useState('');
@@ -116,7 +131,7 @@ export default function GeneratePage() {
   const [noticeEnabled, setNoticeEnabled] = useState(false);
   const [notice, setNotice] = useState({ emoji: '🔔', title: '', body: '' });
 
-  // Images
+  // Images (File | string URL | null)
   const [yardageFiles, setYardageFiles] = useState(Array(18).fill(null));
   const [greenFiles, setGreenFiles] = useState(Array(18).fill(null));
   const yardageBulkRef = useRef(null);
@@ -133,7 +148,53 @@ export default function GeneratePage() {
     return () => document.body.classList.remove('allow-scroll');
   }, []);
 
-  // Slug validation (debounced)
+  // Edit mode: load existing data
+  useEffect(() => {
+    if (!editSlug) return;
+    setIsEditing(true);
+    setSlug(editSlug);
+    setSlugStatus('exists');
+    setLoadingEdit(true);
+
+    fetch(`/api/events/${encodeURIComponent(editSlug)}`)
+      .then(res => res.json())
+      .then(event => {
+        setTitle(event.title || '');
+        setSubtitle(event.subtitle || '');
+        setEventDate(event.event_date ? event.event_date.slice(0, 10) : '');
+        setParInfo(Array.isArray(event.par_info) ? event.par_info : DEFAULT_PAR);
+        setCourseName(event.course_name || '');
+        setCourseAddress(event.course_address || '');
+        setCoursePhone(event.course_phone || '');
+        setCourseDistNote(event.course_distance_note || '');
+        setMapNaver(event.map_links?.naver || '');
+        setMapKakao(event.map_links?.kakao || '');
+        setMapTmap(event.map_links?.tmap || '');
+        setSchedule(event.schedule?.length ? event.schedule : [{ time: '', text: '' }]);
+        setGroups(event.groups?.length ? event.groups.map(g => ({ ...DEFAULT_GROUP(), ...g })) : [DEFAULT_GROUP()]);
+        setAwardText(event.award_text || '');
+        setSettlementText(event.settlement_text || '');
+        if (event.lunch) {
+          setLunchEnabled(true);
+          setLunch(prev => ({ ...prev, ...event.lunch }));
+        }
+        if (event.notice?.enabled) {
+          setNoticeEnabled(true);
+          setNotice(prev => ({ ...prev, ...event.notice }));
+        }
+        // Pre-fill images from existing URLs
+        const yardageByHole = Object.fromEntries((event.yardage_images || []).map(img => [img.hole, img.url]));
+        const greenByHole = Object.fromEntries((event.green_images || []).map(img => [img.hole, img.url]));
+        setYardageFiles(Array.from({ length: 18 }, (_, i) => yardageByHole[i + 1] || null));
+        setGreenFiles(Array.from({ length: 18 }, (_, i) => greenByHole[i + 1] || null));
+        setExistingYardageImages(event.yardage_images || []);
+        setExistingGreenImages(event.green_images || []);
+      })
+      .catch(() => alert('페이지 데이터를 불러오지 못했습니다.'))
+      .finally(() => setLoadingEdit(false));
+  }, [editSlug]);
+
+  // Slug validation (debounced, skipped when editing)
   const slugTimer = useRef(null);
   const validateSlug = useCallback((v) => {
     if (!v) { setSlugStatus(null); return; }
@@ -151,10 +212,14 @@ export default function GeneratePage() {
     }, 600);
   }, []);
 
-  const handleSlugChange = v => { setSlug(v); validateSlug(v); };
+  const handleSlugChange = v => {
+    if (isEditing) return; // slug locked when editing
+    setSlug(v);
+    validateSlug(v);
+  };
 
   const slugColor = { null: 'var(--text-secondary)', checking: '#facc15', available: 'var(--accent-neon)', exists: '#f97316', invalid: '#ef4444' }[slugStatus] || 'var(--text-secondary)';
-  const slugMsg = { null: '', checking: '확인 중...', available: '✓ 사용 가능', exists: '⚠ 이미 존재 (덮어씁니다)', invalid: '✗ 사용 불가 (한글/영문/숫자/-_ 2~40자, 예약어 제외)' }[slugStatus] || '';
+  const slugMsg = { null: '', checking: '확인 중...', available: '✓ 사용 가능', exists: isEditing ? '✏️ 수정 모드' : '⚠ 이미 존재 (덮어씁니다)', invalid: '✗ 사용 불가 (한글/영문/숫자/-_ 2~40자, 예약어 제외)' }[slugStatus] || '';
 
   // Image handlers
   const handleYardageChange = (i, f) => setYardageFiles(prev => { const a = [...prev]; a[i] = f; return a; });
@@ -166,7 +231,7 @@ export default function GeneratePage() {
   const removeSchedule = (i) => setSchedule(s => s.filter((_, idx) => idx !== i));
 
   // Groups
-  const addGroup = () => setGroups(g => [...g, { course: '', time: '', players: '', start: 'valley' }]);
+  const addGroup = () => setGroups(g => [...g, DEFAULT_GROUP()]);
   const updateGroup = (i, k, v) => setGroups(g => g.map((r, idx) => idx === i ? { ...r, [k]: v } : r));
   const removeGroup = (i) => setGroups(g => g.filter((_, idx) => idx !== i));
 
@@ -176,49 +241,53 @@ export default function GeneratePage() {
     if (!title) { alert('타이틀을 입력해주세요.'); return; }
     if (yardageFiles.some(f => !f)) { alert(`야디지 이미지 18장을 모두 선택해주세요. (${yardageFiles.filter(Boolean).length}/18)`); return; }
     if (greenFiles.some(f => !f)) { alert(`그린 이미지 18장을 모두 선택해주세요. (${greenFiles.filter(Boolean).length}/18)`); return; }
-    if (slugStatus === 'exists') {
+    if (!isEditing && slugStatus === 'exists') {
       if (!window.confirm(`"${slug}" 슬러그는 이미 존재합니다.\n기존 페이지를 덮어쓸까요?`)) return;
     }
 
     setIsSubmitting(true);
     try {
-      // Compress all 36 images
-      setSubmitStep('이미지 압축 중...');
-      const allJobs = [
-        ...yardageFiles.map((f, i) => ({ file: f, type: 'yardage', hole: i + 1, fileName: `h${i + 1}.jpg` })),
-        ...greenFiles.map((f, i) => ({ file: f, type: 'green', hole: i + 1, fileName: `g${i + 1}.jpg` })),
-      ];
+      // Separate: existing URLs (keep) vs new Files (upload)
+      const yardageJobs = yardageFiles.map((f, i) => ({ f, hole: i + 1, fileName: `h${i + 1}.jpg`, type: 'yardage' }));
+      const greenJobs = greenFiles.map((f, i) => ({ f, hole: i + 1, fileName: `g${i + 1}.jpg`, type: 'green' }));
 
-      const compressed = await Promise.all(allJobs.map(async job => {
-        const blob = await compressImage(job.file, { maxWidth: 1920, maxHeight: 1920, quality: 0.85 });
-        return { ...job, blob };
-      }));
+      const yardageResults = yardageJobs
+        .filter(j => typeof j.f === 'string')
+        .map(j => existingYardageImages.find(img => img.hole === j.hole) || { hole: j.hole, url: j.f });
+      const greenResults = greenJobs
+        .filter(j => typeof j.f === 'string')
+        .map(j => existingGreenImages.find(img => img.hole === j.hole) || { hole: j.hole, url: j.f });
 
-      // Upload to R2 (concurrency 4)
-      setSubmitStep('R2 업로드 중...');
-      const yardageResults = [];
-      const greenResults = [];
-      const BATCH = 4;
+      const toUpload = [...yardageJobs, ...greenJobs].filter(j => j.f instanceof File);
 
-      for (let i = 0; i < compressed.length; i += BATCH) {
-        const batch = compressed.slice(i, i + BATCH);
-        await Promise.all(batch.map(async ({ blob, type, hole, fileName }) => {
-          const fd = new FormData();
-          fd.append('file', blob, fileName);
-          fd.append('fileName', fileName);
-          fd.append('path', `events/${slug}/${type}`);
-          const res = await fetch('/api/upload', { method: 'POST', body: fd });
-          if (!res.ok) throw new Error(`업로드 실패: ${fileName}`);
-          const { url, key } = await res.json();
-          (type === 'yardage' ? yardageResults : greenResults).push({ hole, url, key });
+      if (toUpload.length > 0) {
+        setSubmitStep('이미지 압축 중...');
+        const compressed = await Promise.all(toUpload.map(async job => {
+          const blob = await compressImage(job.f, { maxWidth: 1920, maxHeight: 1920, quality: 0.85 });
+          return { ...job, blob };
         }));
-        setUploadProgress(Math.round(((i + batch.length) / compressed.length) * 100));
+
+        setSubmitStep('R2 업로드 중...');
+        const BATCH = 4;
+        for (let i = 0; i < compressed.length; i += BATCH) {
+          const batch = compressed.slice(i, i + BATCH);
+          await Promise.all(batch.map(async ({ blob, type, hole, fileName }) => {
+            const fd = new FormData();
+            fd.append('file', blob, fileName);
+            fd.append('fileName', fileName);
+            fd.append('path', `events/${slug}/${type}`);
+            const res = await fetch('/api/upload', { method: 'POST', body: fd });
+            if (!res.ok) throw new Error(`업로드 실패: ${fileName}`);
+            const { url, key } = await res.json();
+            (type === 'yardage' ? yardageResults : greenResults).push({ hole, url, key });
+          }));
+          setUploadProgress(Math.round(((i + batch.length) / compressed.length) * 100));
+        }
       }
 
       yardageResults.sort((a, b) => a.hole - b.hole);
       greenResults.sort((a, b) => a.hole - b.hole);
 
-      // Save to DB
       setSubmitStep('페이지 저장 중...');
       const payload = {
         slug, title,
@@ -259,16 +328,32 @@ export default function GeneratePage() {
     }
   };
 
+  if (loadingEdit) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-color)', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ fontSize: '2rem' }}>⛳</div>
+        <div style={{ color: 'var(--text-secondary)' }}>페이지 데이터 불러오는 중...</div>
+      </div>
+    );
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div style={{ position: 'fixed', inset: 0, overflowY: 'auto', background: 'var(--bg-color)' }}>
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '1.5rem 1rem 4rem' }}>
-        <h2 style={{ color: 'var(--accent-neon)', marginBottom: '1.5rem', fontSize: '1.4rem' }}>⛳ 안내 페이지 생성</h2>
+        <h2 style={{ color: 'var(--accent-neon)', marginBottom: '0.25rem', fontSize: '1.4rem' }}>
+          {isEditing ? '✏️ 안내 페이지 수정' : '⛳ 안내 페이지 생성'}
+        </h2>
+        {isEditing && (
+          <div style={{ fontSize: '0.8rem', color: '#f97316', marginBottom: '1rem', padding: '0.5rem 0.75rem', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '8px' }}>
+            수정 모드: <strong>{slug}</strong> 페이지를 편집 중입니다. 이미지를 다시 선택하지 않으면 기존 이미지가 유지됩니다.
+          </div>
+        )}
 
         {/* ─ 기본 정보 ─ */}
         <Section title="기본 정보">
           <FormRow label="슬러그 (홈페이지 이름) *">
-            <input style={inp} value={slug} onChange={e => handleSlugChange(e.target.value)} placeholder="예) 클럽359-6월 또는 my-club-june" />
+            <input style={{ ...inp, opacity: isEditing ? 0.6 : 1 }} value={slug} onChange={e => handleSlugChange(e.target.value)} placeholder="예) 클럽359-6월 또는 my-club-june" readOnly={isEditing} />
             {slugStatus && <div style={{ fontSize: '0.72rem', color: slugColor, marginTop: '3px' }}>{slugMsg}</div>}
             {slug && slugStatus === 'available' && <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>접속 URL: /go/{slug}</div>}
           </FormRow>
@@ -298,15 +383,9 @@ export default function GeneratePage() {
             <input style={inp} value={courseDistNote} onChange={e => setCourseDistNote(e.target.value)} placeholder="여의도 기준 약 1h 35m" />
           </FormRow>
           <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>지도 링크 (선택 — 있는 것만 표시됨)</div>
-          <FormRow label="네이버지도 URL">
-            <input style={inp} value={mapNaver} onChange={e => setMapNaver(e.target.value)} placeholder="https://map.naver.com/..." />
-          </FormRow>
-          <FormRow label="카카오지도 URL">
-            <input style={inp} value={mapKakao} onChange={e => setMapKakao(e.target.value)} placeholder="https://map.kakao.com/..." />
-          </FormRow>
-          <FormRow label="티맵 URL">
-            <input style={inp} value={mapTmap} onChange={e => setMapTmap(e.target.value)} placeholder="https://tmap.co.kr/..." />
-          </FormRow>
+          <FormRow label="네이버지도 URL"><input style={inp} value={mapNaver} onChange={e => setMapNaver(e.target.value)} placeholder="https://map.naver.com/..." /></FormRow>
+          <FormRow label="카카오지도 URL"><input style={inp} value={mapKakao} onChange={e => setMapKakao(e.target.value)} placeholder="https://map.kakao.com/..." /></FormRow>
+          <FormRow label="티맵 URL"><input style={inp} value={mapTmap} onChange={e => setMapTmap(e.target.value)} placeholder="https://tmap.co.kr/..." /></FormRow>
         </Section>
 
         {/* ─ 상세 일정 ─ */}
@@ -323,16 +402,34 @@ export default function GeneratePage() {
 
         {/* ─ 조편성 ─ */}
         <Section title="조편성" badge={`${groups.length}개`}>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>코스 · 시간 · 참석자 · 시작코스(야디지 뷰어 시작홀 설정용)</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>코스명 · 시간 · 참석자 · 코스라벨(IN/OUT 직접입력) · 시작홀</div>
           {groups.map((g, i) => (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr 80px auto', gap: '4px', marginBottom: '6px', alignItems: 'center' }}>
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr 70px 44px auto', gap: '4px', marginBottom: '6px', alignItems: 'center' }}>
               <input style={inp} value={g.course} onChange={e => updateGroup(i, 'course', e.target.value)} placeholder="밸리" />
               <input style={inp} value={g.time} onChange={e => updateGroup(i, 'time', e.target.value)} placeholder="07:59" />
               <input style={inp} value={g.players} onChange={e => updateGroup(i, 'players', e.target.value)} placeholder="홍길동/김철수/이영희/박민수" />
-              <select style={{ ...inp, padding: '0.65rem 0.3rem' }} value={g.start} onChange={e => updateGroup(i, 'start', e.target.value)}>
-                <option value="valley">밸리(1H)</option>
-                <option value="lake">레이크(10H)</option>
-              </select>
+              {/* 코스 라벨: 자유 입력 */}
+              <input
+                style={inp}
+                value={g.startLabel || ''}
+                onChange={e => updateGroup(i, 'startLabel', e.target.value)}
+                placeholder={g.start === 'valley' ? '밸리' : '레이크'}
+              />
+              {/* 시작홀 토글: 1H ↔ 10H */}
+              <button
+                type="button"
+                onClick={() => updateGroup(i, 'start', g.start === 'valley' ? 'lake' : 'valley')}
+                style={{
+                  height: '100%', padding: '0 4px',
+                  background: g.start === 'valley' ? 'rgba(16,185,129,0.2)' : 'rgba(56,189,248,0.2)',
+                  border: `1px solid ${g.start === 'valley' ? 'var(--accent-neon)' : '#38bdf8'}`,
+                  borderRadius: '8px',
+                  color: g.start === 'valley' ? 'var(--accent-neon)' : '#38bdf8',
+                  fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                {g.start === 'valley' ? '1H' : '10H'}
+              </button>
               <button type="button" onClick={() => removeGroup(i)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '1rem', cursor: 'pointer', padding: '0 4px' }}>×</button>
             </div>
           ))}
@@ -410,21 +507,23 @@ export default function GeneratePage() {
 
         {/* ─ 야디지 이미지 ─ */}
         <Section title="야디지 이미지" badge={`${yardageFiles.filter(Boolean).length}/18`}>
-          <ImageGrid files={yardageFiles} onFileChange={handleYardageChange} label="야디지" bulkRef={yardageBulkRef} />
+          {isEditing && <div style={{ fontSize: '0.75rem', color: '#f97316', marginBottom: '8px' }}>기존 이미지가 표시됩니다. 교체할 홀만 클릭하여 새 파일을 선택하세요.</div>}
+          <ImageGrid files={yardageFiles} onFileChange={handleYardageChange} bulkRef={yardageBulkRef} />
         </Section>
 
         {/* ─ 그린 이미지 ─ */}
         <Section title="그린 이미지" badge={`${greenFiles.filter(Boolean).length}/18`}>
-          <ImageGrid files={greenFiles} onFileChange={handleGreenChange} label="그린" bulkRef={greenBulkRef} />
+          {isEditing && <div style={{ fontSize: '0.75rem', color: '#f97316', marginBottom: '8px' }}>기존 이미지가 표시됩니다. 교체할 홀만 클릭하여 새 파일을 선택하세요.</div>}
+          <ImageGrid files={greenFiles} onFileChange={handleGreenChange} bulkRef={greenBulkRef} />
         </Section>
 
         {/* ─ 제출 ─ */}
         <button
           onClick={handleSubmit}
           disabled={isSubmitting}
-          style={{ width: '100%', padding: '1rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '12px', color: 'white', fontSize: '1.1rem', fontWeight: '700', cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1, marginTop: '0.5rem' }}
+          style={{ width: '100%', padding: '1rem', background: isEditing ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '12px', color: 'white', fontSize: '1.1rem', fontWeight: '700', cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1, marginTop: '0.5rem' }}
         >
-          {isSubmitting ? submitStep || '처리 중...' : '⛳ 안내페이지 생성'}
+          {isSubmitting ? (submitStep || '처리 중...') : (isEditing ? '✏️ 페이지 수정 저장' : '⛳ 안내페이지 생성')}
         </button>
       </div>
 
@@ -432,7 +531,7 @@ export default function GeneratePage() {
       {isSubmitting && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 999, backdropFilter: 'blur(6px)' }}>
           <div style={{ background: '#1e293b', border: '1px solid var(--glass-border)', borderRadius: '16px', padding: '2rem', width: 'min(320px, 90vw)', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⛳</div>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>{isEditing ? '✏️' : '⛳'}</div>
             <div style={{ fontWeight: '700', marginBottom: '0.5rem' }}>{submitStep}</div>
             {uploadProgress > 0 && uploadProgress < 100 && (
               <>

@@ -253,6 +253,13 @@ export default function EventHome({ event, slug }) {
         )}
       </div>
 
+      {/* ── 우상단 편집 버튼 ── */}
+      <Link href={`/generate?edit=${encodeURIComponent(slug)}`} style={{ textDecoration: 'none' }}>
+        <button style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 200, background: 'rgba(15,23,42,0.85)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '10px', color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', padding: '0.4rem 0.7rem', cursor: 'pointer', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+          ✏️ 편집
+        </button>
+      </Link>
+
       {/* ── 하단 고정 버튼 ── */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '1rem', background: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(10px)', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', zIndex: 100 }}>
         <Link href={`/go/${encodeURIComponent(slug)}/record`} style={{ textDecoration: 'none', width: '100%', maxWidth: '600px' }}>
