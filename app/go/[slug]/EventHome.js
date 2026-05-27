@@ -53,7 +53,9 @@ export default function EventHome({ event, slug }) {
     if (!dateStr) return null;
     try {
       const d = new Date(dateStr);
-      return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+      if (Number.isNaN(d.getTime())) return dateStr;
+      const weekday = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
+      return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${weekday})`;
     } catch {
       return dateStr;
     }
