@@ -62,6 +62,39 @@ function ImageSlot({ hole, fileOrUrl, onChange }) {
   );
 }
 
+function TipUploadRow({ label, target, status, error, tipsRange, onUpload, onClear }) {
+  const ref = useRef(null);
+  const filled = tipsRange.filter(t => t.tip).length;
+  const color = status === 'loading' ? '#facc15' : status === 'done' ? 'var(--accent-neon)' : status === 'error' ? '#ef4444' : 'var(--text-secondary)';
+  const msg = status === 'loading' ? 'Gemini 변환 중...' : status === 'done' ? `✓ ${filled}/9 홀 공략 추출됨` : status === 'error' ? `✗ ${error || '오류'}` : '';
+  return (
+    <div style={{ marginBottom: '0.8rem', border: '1px solid var(--glass-border)', borderRadius: '10px', padding: '0.75rem' }}>
+      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <input ref={ref} type="file" accept="application/json,.json" style={{ display: 'none' }} onChange={e => { if (e.target.files[0]) onUpload(e.target.files[0]); e.target.value = ''; }} />
+        <button type="button" onClick={() => ref.current?.click()} disabled={status === 'loading'} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'white', fontSize: '0.8rem', padding: '0.45rem 0.8rem', cursor: status === 'loading' ? 'not-allowed' : 'pointer', opacity: status === 'loading' ? 0.5 : 1 }}>
+          📄 JSON 파일 선택
+        </button>
+        {filled > 0 && (
+          <button type="button" onClick={onClear} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px', color: '#ef4444', fontSize: '0.75rem', padding: '0.4rem 0.7rem', cursor: 'pointer' }}>
+            지우기
+          </button>
+        )}
+      </div>
+      {msg && <div style={{ fontSize: '0.72rem', color, marginTop: '0.4rem' }}>{msg}</div>}
+      {filled > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '3px', marginTop: '0.5rem' }}>
+          {tipsRange.map((t, i) => (
+            <div key={i} title={t.tip ? `${t.tip.slice(0, 80)}${t.tip.length > 80 ? '…' : ''}` : '비어있음'} style={{ textAlign: 'center', fontSize: '0.62rem', padding: '0.2rem 0', borderRadius: '4px', background: t.tip ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', color: t.tip ? 'var(--accent-neon)' : 'var(--text-secondary)', border: '1px solid', borderColor: t.tip ? 'rgba(16,185,129,0.3)' : 'var(--glass-border)' }}>
+              {target === 'lake' ? i + 10 : i + 1}H
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ImageGrid({ files, onFileChange, bulkRef }) {
   return (
     <>
@@ -139,6 +172,11 @@ export default function GeneratePage() {
   const yardageBulkRef = useRef(null);
   const greenBulkRef = useRef(null);
 
+  // Hole tips (1-9: valley/1H, 10-18: lake/10H). Array of { hole, tip } length 18.
+  const [holeTips, setHoleTips] = useState(Array.from({ length: 18 }, (_, i) => ({ hole: i + 1, tip: '' })));
+  const [tipStatus, setTipStatus] = useState({ valley: null, lake: null }); // null | 'loading' | 'done' | 'error'
+  const [tipError, setTipError] = useState({ valley: '', lake: '' });
+
   // Submit
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStep, setSubmitStep] = useState('');
@@ -193,6 +231,12 @@ export default function GeneratePage() {
         setGreenFiles(Array.from({ length: 18 }, (_, i) => greenByHole[i + 1] || null));
         setExistingYardageImages(event.yardage_images || []);
         setExistingGreenImages(event.green_images || []);
+        if (Array.isArray(event.hole_tips) && event.hole_tips.length) {
+          const map = Object.fromEntries(event.hole_tips.map(t => [Number(t.hole), t.tip || '']));
+          setHoleTips(Array.from({ length: 18 }, (_, i) => ({ hole: i + 1, tip: map[i + 1] || '' })));
+          if (event.hole_tips.some(t => Number(t.hole) >= 1 && Number(t.hole) <= 9 && t.tip)) setTipStatus(prev => ({ ...prev, valley: 'done' }));
+          if (event.hole_tips.some(t => Number(t.hole) >= 10 && Number(t.hole) <= 18 && t.tip)) setTipStatus(prev => ({ ...prev, lake: 'done' }));
+        }
       })
       .catch(() => alert('페이지 데이터를 불러오지 못했습니다.'))
       .finally(() => setLoadingEdit(false));
@@ -228,6 +272,45 @@ export default function GeneratePage() {
   // Image handlers
   const handleYardageChange = (i, f) => setYardageFiles(prev => { const a = [...prev]; a[i] = f; return a; });
   const handleGreenChange = (i, f) => setGreenFiles(prev => { const a = [...prev]; a[i] = f; return a; });
+
+  // Hole tip JSON upload handler
+  const handleTipJsonUpload = async (file, target /* 'valley' | 'lake' */) => {
+    setTipStatus(prev => ({ ...prev, [target]: 'loading' }));
+    setTipError(prev => ({ ...prev, [target]: '' }));
+    try {
+      const text = await file.text();
+      let parsed;
+      try { parsed = JSON.parse(text); } catch { throw new Error('JSON 파싱 실패: 올바른 JSON 파일이 아닙니다.'); }
+      const courseHint = target === 'valley' ? (valleyCourseName || '') : (lakeCourseName || '');
+      const res = await fetch('/api/transform-tips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: parsed, courseHint }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gemini 변환 실패');
+      const baseHole = target === 'valley' ? 1 : 10;
+      setHoleTips(prev => {
+        const next = [...prev];
+        (data.tips || []).forEach(t => {
+          const slot = baseHole + (Number(t.hole) - 1);
+          if (slot >= 1 && slot <= 18) next[slot - 1] = { hole: slot, tip: t.tip || '' };
+        });
+        return next;
+      });
+      setTipStatus(prev => ({ ...prev, [target]: 'done' }));
+    } catch (err) {
+      setTipStatus(prev => ({ ...prev, [target]: 'error' }));
+      setTipError(prev => ({ ...prev, [target]: err.message || '오류' }));
+    }
+  };
+
+  const clearTips = (target) => {
+    const base = target === 'valley' ? 0 : 9;
+    setHoleTips(prev => prev.map((t, i) => (i >= base && i < base + 9) ? { hole: i + 1, tip: '' } : t));
+    setTipStatus(prev => ({ ...prev, [target]: null }));
+    setTipError(prev => ({ ...prev, [target]: '' }));
+  };
 
   // Schedule
   const addScheduleRow = () => setSchedule(s => [...s, { time: '', text: '' }]);
@@ -313,6 +396,7 @@ export default function GeneratePage() {
         par_info: parInfo,
         yardage_images: yardageResults,
         green_images: greenResults,
+        hole_tips: holeTips,
       };
 
       const saveRes = await fetch('/api/events', {
@@ -526,6 +610,32 @@ export default function GeneratePage() {
         <Section title="그린 이미지" badge={`${greenFiles.filter(Boolean).length}/18`}>
           {isEditing && <div style={{ fontSize: '0.75rem', color: '#f97316', marginBottom: '8px' }}>기존 이미지가 표시됩니다. 교체할 홀만 클릭하여 새 파일을 선택하세요.</div>}
           <ImageGrid files={greenFiles} onFileChange={handleGreenChange} bulkRef={greenBulkRef} />
+        </Section>
+
+        {/* ─ 홀 공략 (JSON 업로드 → Gemini 변환) ─ */}
+        <Section title="홀 공략 (선택)" badge={`${holeTips.filter(t => t.tip).length}/18`}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
+            골프장 홈페이지에서 긁어온 임의 형식의 JSON을 올리면 Gemini가 각 홀(1~9)의 공략 텍스트만 추출해 정리합니다.
+            1H 코스와 10H 코스를 각각 따로 업로드하세요.
+          </div>
+          <TipUploadRow
+            label={`1H 코스 (${valleyCourseName || '밸리'}) 공략 JSON`}
+            target="valley"
+            status={tipStatus.valley}
+            error={tipError.valley}
+            tipsRange={holeTips.slice(0, 9)}
+            onUpload={(f) => handleTipJsonUpload(f, 'valley')}
+            onClear={() => clearTips('valley')}
+          />
+          <TipUploadRow
+            label={`10H 코스 (${lakeCourseName || '레이크'}) 공략 JSON`}
+            target="lake"
+            status={tipStatus.lake}
+            error={tipError.lake}
+            tipsRange={holeTips.slice(9, 18)}
+            onUpload={(f) => handleTipJsonUpload(f, 'lake')}
+            onClear={() => clearTips('lake')}
+          />
         </Section>
 
         {/* ─ 제출 ─ */}

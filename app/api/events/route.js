@@ -24,6 +24,7 @@ async function initDB() {
       par_info            JSONB DEFAULT '[4,4,4,3,4,3,5,4,5,4,4,5,4,3,4,5,3,4]'::jsonb,
       yardage_images      JSONB DEFAULT '[]'::jsonb,
       green_images        JSONB DEFAULT '[]'::jsonb,
+      hole_tips           JSONB DEFAULT '[]'::jsonb,
       created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -31,6 +32,7 @@ async function initDB() {
   // Add columns to existing tables that pre-date this schema version
   await sql`ALTER TABLE event_pages ADD COLUMN IF NOT EXISTS valley_course_name TEXT`;
   await sql`ALTER TABLE event_pages ADD COLUMN IF NOT EXISTS lake_course_name TEXT`;
+  await sql`ALTER TABLE event_pages ADD COLUMN IF NOT EXISTS hole_tips JSONB DEFAULT '[]'::jsonb`;
 }
 
 export async function GET() {
@@ -60,7 +62,7 @@ export async function POST(request) {
       valley_course_name, lake_course_name,
       award_text, settlement_text,
       lunch, notice,
-      par_info, yardage_images, green_images,
+      par_info, yardage_images, green_images, hole_tips,
     } = body;
 
     if (!slug || !title) {
@@ -75,7 +77,7 @@ export async function POST(request) {
         valley_course_name, lake_course_name,
         award_text, settlement_text,
         lunch, notice,
-        par_info, yardage_images, green_images,
+        par_info, yardage_images, green_images, hole_tips,
         updated_at
       )
       VALUES (
@@ -99,6 +101,7 @@ export async function POST(request) {
         ${JSON.stringify(par_info || [4,4,4,3,4,3,5,4,5,4,4,5,4,3,4,5,3,4])},
         ${JSON.stringify(yardage_images || [])},
         ${JSON.stringify(green_images || [])},
+        ${JSON.stringify(hole_tips || [])},
         NOW()
       )
       ON CONFLICT (slug) DO UPDATE SET
@@ -121,6 +124,7 @@ export async function POST(request) {
         par_info            = EXCLUDED.par_info,
         yardage_images      = EXCLUDED.yardage_images,
         green_images        = EXCLUDED.green_images,
+        hole_tips           = EXCLUDED.hole_tips,
         updated_at          = NOW()
     `;
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import YardageDrawingBoard from './YardageDrawingBoard';
 
-export default function RecordViewer({ slug, courseName, parInfo, yardageImages, greenImages, groups, valleyCourseName, lakeCourseName }) {
+export default function RecordViewer({ slug, courseName, parInfo, yardageImages, greenImages, groups, valleyCourseName, lakeCourseName, holeTips = [] }) {
   const router = useRouter();
   const storagePrefix = `event_${slug}_`;
 
@@ -16,6 +16,7 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
   const [currentHoleIdx, setCurrentHoleIdx] = useState(0);
   const [showHoleSelectModal, setShowHoleSelectModal] = useState(false);
   const [showGreenModal, setShowGreenModal] = useState(false);
+  const [showTipModal, setShowTipModal] = useState(false);
   const [modalStep, setModalStep] = useState(null); // null | 'tee' | 'group'
   const [startCourse, setStartCourse] = useState('valley');
   const [selectedGroupName, setSelectedGroupName] = useState('');
@@ -27,9 +28,11 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
   // Map yardage/green images to hole lookup
   const yardageMap = Object.fromEntries((yardageImages || []).map(img => [img.hole, img.url]));
   const greenMap = Object.fromEntries((greenImages || []).map(img => [img.hole, img.url]));
+  const tipMap = Object.fromEntries((holeTips || []).map(t => [Number(t.hole), t.tip || '']));
 
   const yardageSrc = yardageMap[currentHole.hole] || null;
   const greenImgSrc = greenMap[currentHole.hole] || null;
+  const currentTip = tipMap[currentHole.hole] || '';
 
   // Use explicit course labels (set in generate form), fall back to '밸리'/'레이크'
   const valleyLabel = (valleyCourseName || '').trim() || '밸리';
@@ -114,6 +117,15 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
 
           {/* 우: 버튼들 */}
           <div style={{ display: 'flex', gap: '0.4rem' }}>
+            {currentTip && (
+              <button
+                onClick={() => setShowTipModal(true)}
+                style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)', cursor: 'pointer', fontSize: '0.75rem', padding: '0.2rem 0.55rem', borderRadius: '5px', color: 'var(--accent-neon)', fontWeight: 'bold' }}
+                title="홀 공략"
+              >
+                공략
+              </button>
+            )}
             <button onClick={() => setTutorialStep(1)} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', fontSize: '0.8rem', padding: '0.2rem 0.5rem', borderRadius: '5px', color: 'rgba(255,255,255,0.8)', fontWeight: 'bold' }}>?</button>
             <button id="step-home" onClick={() => router.push(`/go/${encodeURIComponent(slug)}`)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', fontSize: '0.9rem', padding: '0.2rem 0.4rem', borderRadius: '5px' }}>🏠</button>
           </div>
@@ -160,6 +172,26 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
               ))}
             </div>
             <button className="btn btn-secondary" style={{ width: '100%', marginTop: '1rem' }} onClick={() => setShowHoleSelectModal(false)}>닫기</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── 홀 공략 모달 ── */}
+      {showTipModal && currentTip && (
+        <div onClick={() => setShowTipModal(false)} style={{ position: 'fixed', inset: 0, zIndex: 250, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '16px', padding: '1.5rem 1.25rem', width: 'min(420px, 92vw)', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.6)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{courseSectionName(currentHole.hole)} · PAR {currentHole.par}</div>
+                <div style={{ fontWeight: 800, fontSize: '1.3rem', color: 'var(--accent-neon)' }}>
+                  {getDisplayHoleNumber(currentHole.hole)}H 공략
+                </div>
+              </div>
+              <button onClick={() => setShowTipModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '32px', height: '32px', color: 'white', fontSize: '1rem', cursor: 'pointer' }}>×</button>
+            </div>
+            <div style={{ color: '#e2e8f0', fontSize: '0.95rem', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'keep-all' }}>
+              {currentTip}
+            </div>
           </div>
         </div>
       )}
