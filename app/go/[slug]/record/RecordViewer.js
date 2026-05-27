@@ -117,15 +117,6 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
 
           {/* 우: 버튼들 */}
           <div style={{ display: 'flex', gap: '0.4rem' }}>
-            {currentTip && (
-              <button
-                onClick={() => setShowTipModal(true)}
-                style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)', cursor: 'pointer', fontSize: '0.75rem', padding: '0.2rem 0.55rem', borderRadius: '5px', color: 'var(--accent-neon)', fontWeight: 'bold' }}
-                title="홀 공략"
-              >
-                공략
-              </button>
-            )}
             <button onClick={() => setTutorialStep(1)} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', fontSize: '0.8rem', padding: '0.2rem 0.5rem', borderRadius: '5px', color: 'rgba(255,255,255,0.8)', fontWeight: 'bold' }}>?</button>
             <button id="step-home" onClick={() => router.push(`/go/${encodeURIComponent(slug)}`)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', fontSize: '0.9rem', padding: '0.2rem 0.4rem', borderRadius: '5px' }}>🏠</button>
           </div>
@@ -137,8 +128,19 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
         <YardageDrawingBoard yardageSrc={yardageSrc} />
       </div>
 
-      {/* ── 우하단: 그린 + 이동 버튼 ── */}
+      {/* ── 우하단: 공략 + 그린 + 이동 버튼 ── */}
       <div style={{ position: 'absolute', bottom: '20px', right: '20px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.6rem', zIndex: 10 }}>
+        {/* 공략 버튼 (그린 썸네일 위) */}
+        {currentTip && (
+          <button
+            onClick={() => setShowTipModal(true)}
+            style={{ width: '90px', padding: '0.5rem 0', background: 'rgba(15,23,42,0.85)', border: '1px solid rgba(250,204,21,0.5)', borderRadius: '10px', color: '#facc15', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', backdropFilter: 'blur(6px)', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', letterSpacing: '0.06em' }}
+            title="홀 공략"
+          >
+            📖 공략
+          </button>
+        )}
+
         {/* 그린 썸네일 */}
         {greenImgSrc && (
           <div id="step-green" onClick={() => setShowGreenModal(true)} style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(16,185,129,0.4)', background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(6px)', width: '90px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', cursor: 'pointer' }}>
