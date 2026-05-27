@@ -21,7 +21,8 @@ export default async function RecordPage({ params }) {
   let event;
   try {
     const { rows } = await sql`
-      SELECT course_name, par_info, yardage_images, green_images, groups
+      SELECT course_name, par_info, yardage_images, green_images, groups,
+             valley_course_name, lake_course_name
       FROM event_pages WHERE slug = ${slug}
     `;
     if (rows.length === 0) notFound();
@@ -41,6 +42,8 @@ export default async function RecordPage({ params }) {
       yardageImages={event.yardage_images || []}
       greenImages={event.green_images || []}
       groups={event.groups || []}
+      valleyCourseName={event.valley_course_name || ''}
+      lakeCourseName={event.lake_course_name || ''}
     />
   );
 }

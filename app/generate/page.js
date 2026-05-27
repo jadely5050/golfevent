@@ -6,7 +6,7 @@ import { compressImage } from '../utils/imageCompression';
 
 const DEFAULT_PAR = [4, 4, 4, 3, 4, 3, 5, 4, 5, 4, 4, 5, 4, 3, 4, 5, 3, 4];
 const RESERVED = ['api', 'go', 'generate', 'dashboard', 'record', '_next', 'public', 'static'];
-const DEFAULT_GROUP = () => ({ _id: Date.now() + Math.random(), course: '', time: '', players: '', start: 'valley', startLabel: '' });
+const DEFAULT_GROUP = () => ({ _id: Date.now() + Math.random(), course: '', time: '', players: '', start: 'valley' });
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
@@ -118,6 +118,8 @@ export default function GeneratePage() {
   // Schedule & Groups
   const [schedule, setSchedule] = useState([{ time: '', text: '' }]);
   const [groups, setGroups] = useState([DEFAULT_GROUP()]);
+  const [valleyCourseName, setValleyCourseName] = useState('');
+  const [lakeCourseName, setLakeCourseName] = useState('');
 
   // Award
   const [awardText, setAwardText] = useState('');
@@ -172,6 +174,8 @@ export default function GeneratePage() {
         setMapTmap(event.map_links?.tmap || '');
         setSchedule(event.schedule?.length ? event.schedule : [{ time: '', text: '' }]);
         setGroups(event.groups?.length ? event.groups.map(g => ({ ...DEFAULT_GROUP(), ...g, _id: g._id || Date.now() + Math.random() })) : [DEFAULT_GROUP()]);
+        setValleyCourseName(event.valley_course_name || '');
+        setLakeCourseName(event.lake_course_name || '');
         setAwardText(event.award_text || '');
         setSettlementText(event.settlement_text || '');
         if (event.lunch) {
@@ -300,6 +304,8 @@ export default function GeneratePage() {
         map_links: { naver: mapNaver, kakao: mapKakao, tmap: mapTmap },
         schedule,
         groups,
+        valley_course_name: valleyCourseName || null,
+        lake_course_name: lakeCourseName || null,
         award_text: awardText || null,
         settlement_text: settlementText || null,
         lunch: lunchEnabled ? { ...lunch } : null,
@@ -402,19 +408,23 @@ export default function GeneratePage() {
 
         {/* ─ 조편성 ─ */}
         <Section title="조편성" badge={`${groups.length}개`}>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>코스명 · 시간 · 참석자 · 코스라벨(IN/OUT 직접입력) · 시작홀</div>
+          {/* 코스 이름 (1H / 10H) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--accent-neon)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>1H 코스명</label>
+              <input style={inp} value={valleyCourseName} onChange={e => setValleyCourseName(e.target.value)} placeholder="밸리" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.72rem', color: '#38bdf8', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>10H 코스명</label>
+              <input style={inp} value={lakeCourseName} onChange={e => setLakeCourseName(e.target.value)} placeholder="레이크" />
+            </div>
+          </div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>조명 · 시간 · 참석자 · 시작홀</div>
           {groups.map((g, i) => (
-            <div key={g._id ?? i} style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr 70px 44px auto', gap: '4px', marginBottom: '6px', alignItems: 'center' }}>
-              <input style={inp} value={g.course} onChange={e => updateGroup(i, 'course', e.target.value)} placeholder="밸리" />
+            <div key={g._id ?? i} style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr 44px auto', gap: '4px', marginBottom: '6px', alignItems: 'center' }}>
+              <input style={inp} value={g.course} onChange={e => updateGroup(i, 'course', e.target.value)} placeholder="1조" />
               <input style={inp} value={g.time} onChange={e => updateGroup(i, 'time', e.target.value)} placeholder="07:59" />
               <input style={inp} value={g.players} onChange={e => updateGroup(i, 'players', e.target.value)} placeholder="홍길동/김철수/이영희/박민수" />
-              {/* 코스 라벨: 자유 입력 */}
-              <input
-                style={inp}
-                value={g.startLabel || ''}
-                onChange={e => updateGroup(i, 'startLabel', e.target.value)}
-                placeholder={g.start === 'valley' ? '밸리' : '레이크'}
-              />
               {/* 시작홀 토글: 1H ↔ 10H */}
               <button
                 type="button"

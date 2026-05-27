@@ -15,6 +15,8 @@ async function initDB() {
       map_links           JSONB DEFAULT '{}'::jsonb,
       schedule            JSONB DEFAULT '[]'::jsonb,
       groups              JSONB DEFAULT '[]'::jsonb,
+      valley_course_name  TEXT,
+      lake_course_name    TEXT,
       award_text          TEXT,
       settlement_text     TEXT,
       lunch               JSONB,
@@ -26,6 +28,9 @@ async function initDB() {
       updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
+  // Add columns to existing tables that pre-date this schema version
+  await sql`ALTER TABLE event_pages ADD COLUMN IF NOT EXISTS valley_course_name TEXT`;
+  await sql`ALTER TABLE event_pages ADD COLUMN IF NOT EXISTS lake_course_name TEXT`;
 }
 
 export async function GET() {
@@ -52,6 +57,7 @@ export async function POST(request) {
       slug, title, subtitle, event_date,
       course_name, course_address, course_phone, course_distance_note,
       map_links, schedule, groups,
+      valley_course_name, lake_course_name,
       award_text, settlement_text,
       lunch, notice,
       par_info, yardage_images, green_images,
@@ -66,6 +72,7 @@ export async function POST(request) {
         slug, title, subtitle, event_date,
         course_name, course_address, course_phone, course_distance_note,
         map_links, schedule, groups,
+        valley_course_name, lake_course_name,
         award_text, settlement_text,
         lunch, notice,
         par_info, yardage_images, green_images,
@@ -83,6 +90,8 @@ export async function POST(request) {
         ${JSON.stringify(map_links || {})},
         ${JSON.stringify(schedule || [])},
         ${JSON.stringify(groups || [])},
+        ${valley_course_name || null},
+        ${lake_course_name || null},
         ${award_text || null},
         ${settlement_text || null},
         ${lunch ? JSON.stringify(lunch) : null},
@@ -103,6 +112,8 @@ export async function POST(request) {
         map_links           = EXCLUDED.map_links,
         schedule            = EXCLUDED.schedule,
         groups              = EXCLUDED.groups,
+        valley_course_name  = EXCLUDED.valley_course_name,
+        lake_course_name    = EXCLUDED.lake_course_name,
         award_text          = EXCLUDED.award_text,
         settlement_text     = EXCLUDED.settlement_text,
         lunch               = EXCLUDED.lunch,

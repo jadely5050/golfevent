@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import YardageDrawingBoard from './YardageDrawingBoard';
 
-export default function RecordViewer({ slug, courseName, parInfo, yardageImages, greenImages, groups }) {
+export default function RecordViewer({ slug, courseName, parInfo, yardageImages, greenImages, groups, valleyCourseName, lakeCourseName }) {
   const router = useRouter();
   const storagePrefix = `event_${slug}_`;
 
@@ -31,9 +31,9 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
   const yardageSrc = yardageMap[currentHole.hole] || null;
   const greenImgSrc = greenMap[currentHole.hole] || null;
 
-  // Derive custom course section labels from groups' startLabels
-  const valleyLabel = groups?.find(g => (g.start || 'valley') === 'valley')?.startLabel?.trim() || '밸리';
-  const lakeLabel   = groups?.find(g => g.start === 'lake')?.startLabel?.trim() || '레이크';
+  // Use explicit course labels (set in generate form), fall back to '밸리'/'레이크'
+  const valleyLabel = (valleyCourseName || '').trim() || '밸리';
+  const lakeLabel   = (lakeCourseName   || '').trim() || '레이크';
 
   const getDisplayHoleNumber = (actualHole) => {
     if (startCourse === 'valley') return actualHole;
