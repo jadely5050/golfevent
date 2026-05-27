@@ -1,11 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+const EDIT_PASSWORD = '19391939';
 
 export default function EventHome({ event, slug }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('event');
   const [showNotice, setShowNotice] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editPw, setEditPw] = useState('');
+  const [editPwError, setEditPwError] = useState(false);
+  const pwInputRef = useRef(null);
 
   const hasLunch = !!event.lunch;
   const notice = event.notice;
@@ -18,6 +26,24 @@ export default function EventHome({ event, slug }) {
     document.body.classList.add('allow-scroll');
     return () => document.body.classList.remove('allow-scroll');
   }, []);
+
+  const openEditModal = () => {
+    setEditPw('');
+    setEditPwError(false);
+    setShowEditModal(true);
+    setTimeout(() => pwInputRef.current?.focus(), 80);
+  };
+
+  const confirmEditPw = () => {
+    if (editPw === EDIT_PASSWORD) {
+      setShowEditModal(false);
+      router.push(`/generate?edit=${encodeURIComponent(slug)}`);
+    } else {
+      setEditPwError(true);
+      setEditPw('');
+      setTimeout(() => pwInputRef.current?.focus(), 50);
+    }
+  };
 
   const copyAddress = (addr) => {
     navigator.clipboard.writeText(addr).then(() => alert('주소가 복사되었습니다.'));
@@ -254,11 +280,39 @@ export default function EventHome({ event, slug }) {
       </div>
 
       {/* ── 우상단 편집 버튼 ── */}
-      <Link href={`/generate?edit=${encodeURIComponent(slug)}`} style={{ textDecoration: 'none' }}>
-        <button style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 200, background: 'rgba(15,23,42,0.85)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '10px', color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', padding: '0.4rem 0.7rem', cursor: 'pointer', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-          ✏️ 편집
-        </button>
-      </Link>
+      <button onClick={openEditModal} style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 200, background: 'rgba(15,23,42,0.85)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '10px', color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', padding: '0.4rem 0.7rem', cursor: 'pointer', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+        ✏️ 편집
+      </button>
+
+      {/* ── 편집 암호 모달 ── */}
+      {showEditModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 2000, backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowEditModal(false)}>
+          <div style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '20px', padding: '2rem', width: 'min(88vw, 320px)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔒</div>
+              <div style={{ fontWeight: '700', fontSize: '1.05rem', color: '#e2e8f0' }}>편집 암호 입력</div>
+            </div>
+            <input
+              ref={pwInputRef}
+              type="password"
+              value={editPw}
+              onChange={e => { setEditPw(e.target.value); setEditPwError(false); }}
+              onKeyDown={e => e.key === 'Enter' && confirmEditPw()}
+              placeholder="암호를 입력하세요"
+              style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: `1px solid ${editPwError ? '#ef4444' : 'rgba(255,255,255,0.2)'}`, borderRadius: '10px', padding: '0.75rem 1rem', color: 'white', fontSize: '1rem', outline: 'none', boxSizing: 'border-box', textAlign: 'center', letterSpacing: '0.2em' }}
+            />
+            {editPwError && (
+              <div style={{ color: '#ef4444', fontSize: '0.8rem', textAlign: 'center', marginTop: '0.5rem' }}>암호가 틀렸습니다.</div>
+            )}
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.2rem' }}>
+              <button onClick={() => setShowEditModal(false)} style={{ flex: 1, padding: '0.7rem', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#94a3b8', fontWeight: '600', cursor: 'pointer', fontSize: '0.9rem' }}>취소</button>
+              <button onClick={confirmEditPw} style={{ flex: 1, padding: '0.7rem', background: 'linear-gradient(135deg, var(--accent-neon), #059669)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem' }}>확인</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── 하단 고정 버튼 ── */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '1rem', background: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(10px)', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', zIndex: 100 }}>
