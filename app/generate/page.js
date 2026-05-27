@@ -1,0 +1,450 @@
+'use client';
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { compressImage } from '../utils/imageCompression';
+
+const DEFAULT_PAR = [4, 4, 4, 3, 4, 3, 5, 4, 5, 4, 4, 5, 4, 3, 4, 5, 3, 4];
+const RESERVED = ['api', 'go', 'generate', 'dashboard', 'record', '_next', 'public', 'static'];
+
+// ── Sub-components ──────────────────────────────────────────────────────────
+
+function Section({ title, children, badge }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div style={{ marginBottom: '0.75rem', border: '1px solid var(--glass-border)', borderRadius: '12px', overflow: 'hidden' }}>
+      <div onClick={() => setOpen(!open)} style={{ padding: '0.85rem 1rem', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.04)', userSelect: 'none' }}>
+        <span style={{ fontWeight: '700', fontSize: '0.95rem' }}>{title}{badge && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', background: 'var(--accent-neon)', color: '#000', borderRadius: '4px', padding: '1px 5px' }}>{badge}</span>}</span>
+        <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{open ? '▲' : '▼'}</span>
+      </div>
+      {open && <div style={{ padding: '1rem' }}>{children}</div>}
+    </div>
+  );
+}
+
+function FormRow({ label, children }) {
+  return (
+    <div style={{ marginBottom: '0.6rem' }}>
+      <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+const inp = {
+  width: '100%', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--glass-border)',
+  borderRadius: '8px', padding: '0.65rem 0.8rem', color: 'white', fontSize: '0.9rem',
+};
+
+function ImageSlot({ hole, file, onChange }) {
+  const ref = useRef(null);
+  const preview = file ? URL.createObjectURL(file) : null;
+  return (
+    <div onClick={() => ref.current?.click()} style={{ border: `1px solid ${file ? 'var(--accent-neon)' : 'var(--glass-border)'}`, borderRadius: '8px', overflow: 'hidden', cursor: 'pointer', background: 'rgba(0,0,0,0.2)', position: 'relative', aspectRatio: '9/16' }}>
+      <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files[0] && onChange(e.target.files[0])} />
+      {preview ? (
+        <img src={preview} alt={`H${hole}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+          <span style={{ fontSize: '1rem' }}>+</span>
+          <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>H{hole}</span>
+        </div>
+      )}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, textAlign: 'center', fontSize: '0.6rem', background: 'rgba(0,0,0,0.6)', color: file ? 'var(--accent-neon)' : 'var(--text-secondary)', padding: '1px 0' }}>H{hole}</div>
+    </div>
+  );
+}
+
+function ImageGrid({ files, onFileChange, label, bulkRef }) {
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{files.filter(Boolean).length}/18 선택됨</span>
+        <button type="button" onClick={() => bulkRef.current?.click()} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'white', fontSize: '0.75rem', padding: '0.3rem 0.7rem', cursor: 'pointer' }}>
+          📁 일괄 선택
+        </button>
+      </div>
+      <input ref={bulkRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={e => {
+        const sorted = Array.from(e.target.files).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+        sorted.slice(0, 18).forEach((f, i) => onFileChange(i, f));
+        e.target.value = '';
+      }} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px' }}>
+        {files.map((f, i) => (
+          <ImageSlot key={i} hole={i + 1} file={f} onChange={file => onFileChange(i, file)} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ── Main Page ────────────────────────────────────────────────────────────────
+
+export default function GeneratePage() {
+  const router = useRouter();
+
+  // Basic
+  const [slug, setSlug] = useState('');
+  const [slugStatus, setSlugStatus] = useState(null); // null | checking | available | exists | invalid
+  const [title, setTitle] = useState('');
+  const [subtitle, setSubtitle] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [parInfo, setParInfo] = useState([...DEFAULT_PAR]);
+
+  // Course
+  const [courseName, setCourseName] = useState('');
+  const [courseAddress, setCourseAddress] = useState('');
+  const [coursePhone, setCoursePhone] = useState('');
+  const [courseDistNote, setCourseDistNote] = useState('');
+  const [mapNaver, setMapNaver] = useState('');
+  const [mapKakao, setMapKakao] = useState('');
+  const [mapTmap, setMapTmap] = useState('');
+
+  // Schedule & Groups
+  const [schedule, setSchedule] = useState([{ time: '', text: '' }]);
+  const [groups, setGroups] = useState([{ course: '', time: '', players: '', start: 'valley' }]);
+
+  // Award
+  const [awardText, setAwardText] = useState('');
+  const [settlementText, setSettlementText] = useState('');
+
+  // Lunch
+  const [lunchEnabled, setLunchEnabled] = useState(false);
+  const [lunch, setLunch] = useState({ name: '', address: '', phone: '', menu: '', mapNaver: '', mapKakao: '' });
+
+  // Notice
+  const [noticeEnabled, setNoticeEnabled] = useState(false);
+  const [notice, setNotice] = useState({ emoji: '🔔', title: '', body: '' });
+
+  // Images
+  const [yardageFiles, setYardageFiles] = useState(Array(18).fill(null));
+  const [greenFiles, setGreenFiles] = useState(Array(18).fill(null));
+  const yardageBulkRef = useRef(null);
+  const greenBulkRef = useRef(null);
+
+  // Submit
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStep, setSubmitStep] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Allow body scroll
+  useEffect(() => {
+    document.body.classList.add('allow-scroll');
+    return () => document.body.classList.remove('allow-scroll');
+  }, []);
+
+  // Slug validation (debounced)
+  const slugTimer = useRef(null);
+  const validateSlug = useCallback((v) => {
+    if (!v) { setSlugStatus(null); return; }
+    const ok = /^[\p{L}\p{N}\-_]{2,40}$/u.test(v) && !RESERVED.includes(v.toLowerCase());
+    if (!ok) { setSlugStatus('invalid'); return; }
+    setSlugStatus('checking');
+    clearTimeout(slugTimer.current);
+    slugTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/events/${encodeURIComponent(v)}`);
+        setSlugStatus(res.ok ? 'exists' : 'available');
+      } catch {
+        setSlugStatus('available');
+      }
+    }, 600);
+  }, []);
+
+  const handleSlugChange = v => { setSlug(v); validateSlug(v); };
+
+  const slugColor = { null: 'var(--text-secondary)', checking: '#facc15', available: 'var(--accent-neon)', exists: '#f97316', invalid: '#ef4444' }[slugStatus] || 'var(--text-secondary)';
+  const slugMsg = { null: '', checking: '확인 중...', available: '✓ 사용 가능', exists: '⚠ 이미 존재 (덮어씁니다)', invalid: '✗ 사용 불가 (한글/영문/숫자/-_ 2~40자, 예약어 제외)' }[slugStatus] || '';
+
+  // Image handlers
+  const handleYardageChange = (i, f) => setYardageFiles(prev => { const a = [...prev]; a[i] = f; return a; });
+  const handleGreenChange = (i, f) => setGreenFiles(prev => { const a = [...prev]; a[i] = f; return a; });
+
+  // Schedule
+  const addScheduleRow = () => setSchedule(s => [...s, { time: '', text: '' }]);
+  const updateSchedule = (i, k, v) => setSchedule(s => s.map((r, idx) => idx === i ? { ...r, [k]: v } : r));
+  const removeSchedule = (i) => setSchedule(s => s.filter((_, idx) => idx !== i));
+
+  // Groups
+  const addGroup = () => setGroups(g => [...g, { course: '', time: '', players: '', start: 'valley' }]);
+  const updateGroup = (i, k, v) => setGroups(g => g.map((r, idx) => idx === i ? { ...r, [k]: v } : r));
+  const removeGroup = (i) => setGroups(g => g.filter((_, idx) => idx !== i));
+
+  // Submit
+  const handleSubmit = async () => {
+    if (!slug || slugStatus === 'invalid') { alert('올바른 슬러그를 입력해주세요.'); return; }
+    if (!title) { alert('타이틀을 입력해주세요.'); return; }
+    if (yardageFiles.some(f => !f)) { alert(`야디지 이미지 18장을 모두 선택해주세요. (${yardageFiles.filter(Boolean).length}/18)`); return; }
+    if (greenFiles.some(f => !f)) { alert(`그린 이미지 18장을 모두 선택해주세요. (${greenFiles.filter(Boolean).length}/18)`); return; }
+    if (slugStatus === 'exists') {
+      if (!window.confirm(`"${slug}" 슬러그는 이미 존재합니다.\n기존 페이지를 덮어쓸까요?`)) return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Compress all 36 images
+      setSubmitStep('이미지 압축 중...');
+      const allJobs = [
+        ...yardageFiles.map((f, i) => ({ file: f, type: 'yardage', hole: i + 1, fileName: `h${i + 1}.jpg` })),
+        ...greenFiles.map((f, i) => ({ file: f, type: 'green', hole: i + 1, fileName: `g${i + 1}.jpg` })),
+      ];
+
+      const compressed = await Promise.all(allJobs.map(async job => {
+        const blob = await compressImage(job.file, { maxWidth: 1920, maxHeight: 1920, quality: 0.85 });
+        return { ...job, blob };
+      }));
+
+      // Upload to R2 (concurrency 4)
+      setSubmitStep('R2 업로드 중...');
+      const yardageResults = [];
+      const greenResults = [];
+      const BATCH = 4;
+
+      for (let i = 0; i < compressed.length; i += BATCH) {
+        const batch = compressed.slice(i, i + BATCH);
+        await Promise.all(batch.map(async ({ blob, type, hole, fileName }) => {
+          const fd = new FormData();
+          fd.append('file', blob, fileName);
+          fd.append('fileName', fileName);
+          fd.append('path', `events/${slug}/${type}`);
+          const res = await fetch('/api/upload', { method: 'POST', body: fd });
+          if (!res.ok) throw new Error(`업로드 실패: ${fileName}`);
+          const { url, key } = await res.json();
+          (type === 'yardage' ? yardageResults : greenResults).push({ hole, url, key });
+        }));
+        setUploadProgress(Math.round(((i + batch.length) / compressed.length) * 100));
+      }
+
+      yardageResults.sort((a, b) => a.hole - b.hole);
+      greenResults.sort((a, b) => a.hole - b.hole);
+
+      // Save to DB
+      setSubmitStep('페이지 저장 중...');
+      const payload = {
+        slug, title,
+        subtitle: subtitle || null,
+        event_date: eventDate || null,
+        course_name: courseName || null,
+        course_address: courseAddress || null,
+        course_phone: coursePhone || null,
+        course_distance_note: courseDistNote || null,
+        map_links: { naver: mapNaver, kakao: mapKakao, tmap: mapTmap },
+        schedule,
+        groups,
+        award_text: awardText || null,
+        settlement_text: settlementText || null,
+        lunch: lunchEnabled ? { ...lunch } : null,
+        notice: noticeEnabled ? { enabled: true, ...notice } : null,
+        par_info: parInfo,
+        yardage_images: yardageResults,
+        green_images: greenResults,
+      };
+
+      const saveRes = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!saveRes.ok) {
+        const err = await saveRes.json();
+        throw new Error(err.error || '저장 실패');
+      }
+
+      setSubmitStep('완료! 이동 중...');
+      setTimeout(() => router.push(`/go/${encodeURIComponent(slug)}`), 600);
+    } catch (err) {
+      alert(`오류: ${err.message}`);
+      setIsSubmitting(false);
+      setSubmitStep('');
+    }
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  return (
+    <div style={{ position: 'fixed', inset: 0, overflowY: 'auto', background: 'var(--bg-color)' }}>
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '1.5rem 1rem 4rem' }}>
+        <h2 style={{ color: 'var(--accent-neon)', marginBottom: '1.5rem', fontSize: '1.4rem' }}>⛳ 안내 페이지 생성</h2>
+
+        {/* ─ 기본 정보 ─ */}
+        <Section title="기본 정보">
+          <FormRow label="슬러그 (홈페이지 이름) *">
+            <input style={inp} value={slug} onChange={e => handleSlugChange(e.target.value)} placeholder="예) 클럽359-6월 또는 my-club-june" />
+            {slugStatus && <div style={{ fontSize: '0.72rem', color: slugColor, marginTop: '3px' }}>{slugMsg}</div>}
+            {slug && slugStatus === 'available' && <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>접속 URL: /go/{slug}</div>}
+          </FormRow>
+          <FormRow label="타이틀 *">
+            <input style={inp} value={title} onChange={e => setTitle(e.target.value)} placeholder="May the PAR be with you!" />
+          </FormRow>
+          <FormRow label="부제">
+            <input style={inp} value={subtitle} onChange={e => setSubtitle(e.target.value)} placeholder="2026년 6월 클럽 359 라운딩" />
+          </FormRow>
+          <FormRow label="행사 일자">
+            <input style={inp} type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} />
+          </FormRow>
+        </Section>
+
+        {/* ─ 골프장 정보 ─ */}
+        <Section title="골프장 정보">
+          <FormRow label="골프장명">
+            <input style={inp} value={courseName} onChange={e => setCourseName(e.target.value)} placeholder="용인 세현CC" />
+          </FormRow>
+          <FormRow label="주소">
+            <input style={inp} value={courseAddress} onChange={e => setCourseAddress(e.target.value)} placeholder="경기 용인시 처인구 이동읍 백자로 450" />
+          </FormRow>
+          <FormRow label="전화번호">
+            <input style={inp} value={coursePhone} onChange={e => setCoursePhone(e.target.value)} placeholder="031-670-8800" />
+          </FormRow>
+          <FormRow label="거리 안내 (선택)">
+            <input style={inp} value={courseDistNote} onChange={e => setCourseDistNote(e.target.value)} placeholder="여의도 기준 약 1h 35m" />
+          </FormRow>
+          <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>지도 링크 (선택 — 있는 것만 표시됨)</div>
+          <FormRow label="네이버지도 URL">
+            <input style={inp} value={mapNaver} onChange={e => setMapNaver(e.target.value)} placeholder="https://map.naver.com/..." />
+          </FormRow>
+          <FormRow label="카카오지도 URL">
+            <input style={inp} value={mapKakao} onChange={e => setMapKakao(e.target.value)} placeholder="https://map.kakao.com/..." />
+          </FormRow>
+          <FormRow label="티맵 URL">
+            <input style={inp} value={mapTmap} onChange={e => setMapTmap(e.target.value)} placeholder="https://tmap.co.kr/..." />
+          </FormRow>
+        </Section>
+
+        {/* ─ 상세 일정 ─ */}
+        <Section title="상세 일정" badge={`${schedule.length}개`}>
+          {schedule.map((row, i) => (
+            <div key={i} style={{ display: 'flex', gap: '6px', marginBottom: '6px', alignItems: 'center' }}>
+              <input style={{ ...inp, width: '90px', flexShrink: 0 }} value={row.time} onChange={e => updateSchedule(i, 'time', e.target.value)} placeholder="07:25" />
+              <input style={{ ...inp, flex: 1 }} value={row.text} onChange={e => updateSchedule(i, 'text', e.target.value)} placeholder="집합 및 기념 사진 촬영" />
+              <button type="button" onClick={() => removeSchedule(i)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '1rem', cursor: 'pointer', padding: '0 4px', flexShrink: 0 }}>×</button>
+            </div>
+          ))}
+          <button type="button" onClick={addScheduleRow} style={{ background: 'rgba(255,255,255,0.06)', border: '1px dashed var(--glass-border)', borderRadius: '6px', color: 'var(--text-secondary)', fontSize: '0.8rem', padding: '0.4rem 0.8rem', cursor: 'pointer', width: '100%', marginTop: '4px' }}>+ 행 추가</button>
+        </Section>
+
+        {/* ─ 조편성 ─ */}
+        <Section title="조편성" badge={`${groups.length}개`}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>코스 · 시간 · 참석자 · 시작코스(야디지 뷰어 시작홀 설정용)</div>
+          {groups.map((g, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 70px 1fr 80px auto', gap: '4px', marginBottom: '6px', alignItems: 'center' }}>
+              <input style={inp} value={g.course} onChange={e => updateGroup(i, 'course', e.target.value)} placeholder="밸리" />
+              <input style={inp} value={g.time} onChange={e => updateGroup(i, 'time', e.target.value)} placeholder="07:59" />
+              <input style={inp} value={g.players} onChange={e => updateGroup(i, 'players', e.target.value)} placeholder="홍길동/김철수/이영희/박민수" />
+              <select style={{ ...inp, padding: '0.65rem 0.3rem' }} value={g.start} onChange={e => updateGroup(i, 'start', e.target.value)}>
+                <option value="valley">밸리(1H)</option>
+                <option value="lake">레이크(10H)</option>
+              </select>
+              <button type="button" onClick={() => removeGroup(i)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '1rem', cursor: 'pointer', padding: '0 4px' }}>×</button>
+            </div>
+          ))}
+          <button type="button" onClick={addGroup} style={{ background: 'rgba(255,255,255,0.06)', border: '1px dashed var(--glass-border)', borderRadius: '6px', color: 'var(--text-secondary)', fontSize: '0.8rem', padding: '0.4rem 0.8rem', cursor: 'pointer', width: '100%', marginTop: '4px' }}>+ 조 추가</button>
+        </Section>
+
+        {/* ─ 시상/정산 ─ */}
+        <Section title="시상 및 정산">
+          <FormRow label="시상 내용">
+            <textarea style={{ ...inp, minHeight: '80px', resize: 'vertical' }} value={awardText} onChange={e => setAwardText(e.target.value)} placeholder="- 5등 Vice 골프공 더즌 증정" />
+          </FormRow>
+          <FormRow label="정산 안내">
+            <textarea style={{ ...inp, minHeight: '80px', resize: 'vertical' }} value={settlementText} onChange={e => setSettlementText(e.target.value)} placeholder="- 캐디피(15만), 카트비(12만) 개인 정산&#10;- 기타 조별/개인 정산" />
+          </FormRow>
+        </Section>
+
+        {/* ─ 중식 (선택) ─ */}
+        <div style={{ marginBottom: '0.75rem', border: '1px solid var(--glass-border)', borderRadius: '12px', overflow: 'hidden' }}>
+          <div style={{ padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.04)', cursor: 'pointer' }} onClick={() => setLunchEnabled(v => !v)}>
+            <input type="checkbox" checked={lunchEnabled} onChange={() => {}} style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--accent-neon)' }} />
+            <span style={{ fontWeight: '700', fontSize: '0.95rem' }}>🍽️ 중식 정보 포함</span>
+          </div>
+          {lunchEnabled && (
+            <div style={{ padding: '1rem' }}>
+              <FormRow label="음식점명"><input style={inp} value={lunch.name} onChange={e => setLunch(v => ({ ...v, name: e.target.value }))} placeholder="약속하오리" /></FormRow>
+              <FormRow label="주소"><input style={inp} value={lunch.address} onChange={e => setLunch(v => ({ ...v, address: e.target.value }))} placeholder="경기 용인시 처인구 이동읍 서리로137번길 14" /></FormRow>
+              <FormRow label="전화번호"><input style={inp} value={lunch.phone} onChange={e => setLunch(v => ({ ...v, phone: e.target.value }))} placeholder="0507-1487-5293" /></FormRow>
+              <FormRow label="메뉴"><input style={inp} value={lunch.menu} onChange={e => setLunch(v => ({ ...v, menu: e.target.value }))} placeholder="오리 로스" /></FormRow>
+              <FormRow label="네이버지도 URL"><input style={inp} value={lunch.mapNaver} onChange={e => setLunch(v => ({ ...v, mapNaver: e.target.value }))} placeholder="https://map.naver.com/..." /></FormRow>
+              <FormRow label="카카오지도 URL"><input style={inp} value={lunch.mapKakao} onChange={e => setLunch(v => ({ ...v, mapKakao: e.target.value }))} placeholder="https://map.kakao.com/..." /></FormRow>
+            </div>
+          )}
+        </div>
+
+        {/* ─ 공지 팝업 (선택) ─ */}
+        <div style={{ marginBottom: '0.75rem', border: '1px solid var(--glass-border)', borderRadius: '12px', overflow: 'hidden' }}>
+          <div style={{ padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.04)', cursor: 'pointer' }} onClick={() => setNoticeEnabled(v => !v)}>
+            <input type="checkbox" checked={noticeEnabled} onChange={() => {}} style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--accent-neon)' }} />
+            <span style={{ fontWeight: '700', fontSize: '0.95rem' }}>🔔 공지 팝업 포함</span>
+          </div>
+          {noticeEnabled && (
+            <div style={{ padding: '1rem' }}>
+              <FormRow label="이모지">
+                <input style={{ ...inp, width: '80px' }} value={notice.emoji} onChange={e => setNotice(v => ({ ...v, emoji: e.target.value }))} placeholder="🌧️" />
+              </FormRow>
+              <FormRow label="제목"><input style={inp} value={notice.title} onChange={e => setNotice(v => ({ ...v, title: e.target.value }))} placeholder="비로 인해 우천 취소 되었습니다" /></FormRow>
+              <FormRow label="본문"><textarea style={{ ...inp, minHeight: '60px', resize: 'vertical' }} value={notice.body} onChange={e => setNotice(v => ({ ...v, body: e.target.value }))} placeholder="9월에 더 좋은 라운드로 만나뵙겠습니다 ⛳" /></FormRow>
+            </div>
+          )}
+        </div>
+
+        {/* ─ PAR 정보 ─ */}
+        <Section title="PAR 정보 (18홀)">
+          <div style={{ marginBottom: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>앞 9홀</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '4px', marginBottom: '8px' }}>
+            {parInfo.slice(0, 9).map((p, i) => (
+              <div key={i} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginBottom: '2px' }}>{i + 1}H</div>
+                <input type="number" min={3} max={5} style={{ ...inp, padding: '0.3rem', textAlign: 'center', fontSize: '0.9rem' }} value={p}
+                  onChange={e => setParInfo(v => { const a = [...v]; a[i] = Number(e.target.value); return a; })} />
+              </div>
+            ))}
+          </div>
+          <div style={{ marginBottom: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>뒤 9홀</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '4px' }}>
+            {parInfo.slice(9).map((p, i) => (
+              <div key={i + 9} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginBottom: '2px' }}>{i + 10}H</div>
+                <input type="number" min={3} max={5} style={{ ...inp, padding: '0.3rem', textAlign: 'center', fontSize: '0.9rem' }} value={p}
+                  onChange={e => setParInfo(v => { const a = [...v]; a[i + 9] = Number(e.target.value); return a; })} />
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        {/* ─ 야디지 이미지 ─ */}
+        <Section title="야디지 이미지" badge={`${yardageFiles.filter(Boolean).length}/18`}>
+          <ImageGrid files={yardageFiles} onFileChange={handleYardageChange} label="야디지" bulkRef={yardageBulkRef} />
+        </Section>
+
+        {/* ─ 그린 이미지 ─ */}
+        <Section title="그린 이미지" badge={`${greenFiles.filter(Boolean).length}/18`}>
+          <ImageGrid files={greenFiles} onFileChange={handleGreenChange} label="그린" bulkRef={greenBulkRef} />
+        </Section>
+
+        {/* ─ 제출 ─ */}
+        <button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          style={{ width: '100%', padding: '1rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '12px', color: 'white', fontSize: '1.1rem', fontWeight: '700', cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1, marginTop: '0.5rem' }}
+        >
+          {isSubmitting ? submitStep || '처리 중...' : '⛳ 안내페이지 생성'}
+        </button>
+      </div>
+
+      {/* ─ Progress Overlay ─ */}
+      {isSubmitting && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 999, backdropFilter: 'blur(6px)' }}>
+          <div style={{ background: '#1e293b', border: '1px solid var(--glass-border)', borderRadius: '16px', padding: '2rem', width: 'min(320px, 90vw)', textAlign: 'center' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⛳</div>
+            <div style={{ fontWeight: '700', marginBottom: '0.5rem' }}>{submitStep}</div>
+            {uploadProgress > 0 && uploadProgress < 100 && (
+              <>
+                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '9999px', height: '6px', overflow: 'hidden', margin: '0.75rem 0' }}>
+                  <div style={{ height: '100%', width: `${uploadProgress}%`, background: 'var(--accent-neon)', borderRadius: '9999px', transition: 'width 0.3s' }} />
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>이미지 업로드 {uploadProgress}%</div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
