@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-export default function YardageDrawingBoard({ yardageSrc }) {
+export default function YardageDrawingBoard({ yardageSrc, undulationSrc }) {
   const [scale, setScale] = useState(1);
   const containerRef = useRef(null);
   const initialPinchDist = useRef(null);
@@ -39,9 +39,9 @@ export default function YardageDrawingBoard({ yardageSrc }) {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      style={{ overflow: 'hidden', height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', WebkitOverflowScrolling: 'touch' }}
+      style={{ overflow: 'hidden', height: '100%', width: '100%', display: 'flex', flexDirection: 'column', WebkitOverflowScrolling: 'touch' }}
     >
-      <div style={{ transform: `scale(${scale})`, transformOrigin: 'center top', width: '100%', height: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', transition: 'transform 0.1s ease-out' }}>
+      <div style={{ transform: `scale(${scale})`, transformOrigin: 'center top', flex: undulationSrc ? '1 1 55%' : '1 1 auto', minHeight: 0, width: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', transition: 'transform 0.1s ease-out' }}>
         {yardageSrc ? (
           <img
             src={yardageSrc}
@@ -53,6 +53,18 @@ export default function YardageDrawingBoard({ yardageSrc }) {
           <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>이미지 없음</div>
         )}
       </div>
+
+      {undulationSrc && (
+        <div style={{ flex: '1 1 45%', minHeight: 0, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.75rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ fontSize: '0.65rem', color: '#38bdf8', fontWeight: 'bold', marginBottom: '2px' }}>언듈레이션</div>
+          <img
+            src={undulationSrc}
+            alt="언듈레이션"
+            style={{ maxWidth: '100%', maxHeight: 'calc(100% - 16px)', objectFit: 'contain', display: 'block', borderRadius: '4px' }}
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -16,7 +16,6 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
   const [currentHoleIdx, setCurrentHoleIdx] = useState(0);
   const [showHoleSelectModal, setShowHoleSelectModal] = useState(false);
   const [showGreenModal, setShowGreenModal] = useState(false);
-  const [showUndulationModal, setShowUndulationModal] = useState(false);
   const [showTipModal, setShowTipModal] = useState(false);
   const [modalStep, setModalStep] = useState(null); // null | 'tee' | 'group'
   const [startCourse, setStartCourse] = useState('valley');
@@ -130,20 +129,10 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
         </div>
       </div>
 
-      {/* ── 야디지 ── */}
+      {/* ── 야디지 (하단에 언듈레이션 이미지 상시 표시) ── */}
       <div className="hole-yardage-container">
-        <YardageDrawingBoard yardageSrc={yardageSrc} />
+        <YardageDrawingBoard yardageSrc={yardageSrc} undulationSrc={undulationImgSrc} />
       </div>
-
-      {/* ── 좌하단: 언듈레이션 ── */}
-      {undulationImgSrc && (
-        <div style={{ position: 'absolute', bottom: '20px', left: '20px', zIndex: 10 }}>
-          <div onClick={() => setShowUndulationModal(true)} style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(56,189,248,0.4)', background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(6px)', width: '90px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', cursor: 'pointer' }}>
-            <div style={{ fontSize: '0.65rem', color: '#38bdf8', textAlign: 'center', padding: '0.3rem 0', fontWeight: 'bold' }}>언듈레이션</div>
-            <img src={undulationImgSrc} alt="언듈레이션" style={{ width: '100%', height: 'auto', display: 'block', pointerEvents: 'none' }} onError={(e) => e.target.style.display = 'none'} />
-          </div>
-        </div>
-      )}
 
       {/* ── 우하단: 공략 + 그린 + 이동 버튼 ── */}
       <div style={{ position: 'absolute', bottom: '20px', right: '20px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.6rem', zIndex: 10 }}>
@@ -223,13 +212,6 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
         </div>
       )}
 
-      {/* ── 언듈레이션 전체화면 모달 ── */}
-      {showUndulationModal && undulationImgSrc && (
-        <div onClick={() => setShowUndulationModal(false)} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <button onClick={() => setShowUndulationModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: '40px', height: '40px', color: 'white', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 301 }}>✕</button>
-          <img src={undulationImgSrc} alt="언듈레이션 전체화면" onClick={e => e.stopPropagation()} style={{ maxWidth: '92vw', maxHeight: '92vh', width: 'auto', height: 'auto', borderRadius: '12px', boxShadow: '0 8px 40px rgba(0,0,0,0.6)', objectFit: 'contain' }} />
-        </div>
-      )}
 
       {/* ── 조 선택 모달 ── */}
       {modalStep === 'group' && (
