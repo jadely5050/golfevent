@@ -242,6 +242,13 @@ export default function GeneratePage() {
 
   // Hole tips (1-9: valley/1H, 10-18: lake/10H). Array of { hole, tip } length 18.
   const [holeTips, setHoleTips] = useState(Array.from({ length: 18 }, (_, i) => ({ hole: i + 1, tip: '' })));
+  // 공지 문구 + 상품 리스트 자동 입력
+  const [announceText, setAnnounceText] = useState('');
+  const [announceAwardText, setAnnounceAwardText] = useState('');
+  const [announceStatus, setAnnounceStatus] = useState(null); // null | 'loading' | 'done' | 'error'
+  const [announceError, setAnnounceError] = useState('');
+  const [announceApplied, setAnnounceApplied] = useState(null); // 적용된 필드 요약 문자열 배열
+
   // 코스 ZIP 일괄 등록
   const [zipFileName, setZipFileName] = useState('');
   const [zipParsed, setZipParsed] = useState(null);
@@ -396,6 +403,69 @@ export default function GeneratePage() {
       setTipStatus('error');
       setTipError(err.message || '오류');
     }
+  };
+
+  // ── 공지 문구 + 상품 리스트 자동 입력 ────────────────────────────────
+  const handleAnnounceAutofill = async () => {
+    if (!announceText.trim()) { alert('공지 문구를 입력해주세요.'); return; }
+
+    setAnnounceStatus('loading');
+    setAnnounceError('');
+    setAnnounceApplied(null);
+
+    try {
+      const res = await fetch('/api/transform-announcement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ announcementText: announceText, awardText: announceAwardText }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const errMsg = data.detail ? `${data.error || '자동 입력 실패'} — ${data.detail}` : (data.error || '자동 입력 실패');
+        throw new Error(errMsg);
+      }
+
+      const applied = [];
+
+      if (data.title) { setTitle(data.title); applied.push('타이틀'); }
+      if (data.subtitle) { setSubtitle(data.subtitle); applied.push('부제'); }
+      if (data.event_date) { setEventDate(data.event_date); applied.push('행사 일자'); }
+      if (data.course_name) { setCourseName(data.course_name); applied.push('골프장명'); }
+      if (data.course_address) { setCourseAddress(data.course_address); applied.push('골프장 주소'); }
+      if (data.course_phone) { setCoursePhone(data.course_phone); applied.push('골프장 전화번호'); }
+      if (data.course_distance_note) { setCourseDistNote(data.course_distance_note); applied.push('거리 안내'); }
+      if (Array.isArray(data.schedule) && data.schedule.length) { setSchedule(data.schedule); applied.push(`상세 일정 ${data.schedule.length}개`); }
+      if (Array.isArray(data.groups) && data.groups.length) {
+        setGroups(data.groups.map(g => ({ ...DEFAULT_GROUP(), ...g })));
+        applied.push(`조편성 ${data.groups.length}개`);
+      }
+      if (data.valley_course_name) { setValleyCourseName(data.valley_course_name); applied.push('1H 코스명'); }
+      if (data.lake_course_name) { setLakeCourseName(data.lake_course_name); applied.push('10H 코스명'); }
+      if (data.award_text) { setAwardText(data.award_text); applied.push('시상 내용'); }
+      if (data.settlement_text) { setSettlementText(data.settlement_text); applied.push('정산 안내'); }
+      if (data.lunch?.enabled) {
+        setLunchEnabled(true);
+        setLunch(prev => ({ ...prev, ...data.lunch }));
+        applied.push('중식 정보');
+      }
+
+      if (applied.length === 0) throw new Error('공지 문구에서 채울 수 있는 항목을 찾지 못했습니다.');
+
+      setAnnounceApplied(applied);
+      setAnnounceStatus('done');
+    } catch (err) {
+      console.error('Announcement autofill error:', err);
+      setAnnounceStatus('error');
+      setAnnounceError(err.message || '오류');
+    }
+  };
+
+  const clearAnnounce = () => {
+    setAnnounceText('');
+    setAnnounceAwardText('');
+    setAnnounceStatus(null);
+    setAnnounceError('');
+    setAnnounceApplied(null);
   };
 
   // ── 코스 ZIP 일괄 등록 ──────────────────────────────────────────────
@@ -605,6 +675,53 @@ export default function GeneratePage() {
             수정 모드: <strong>{slug}</strong> 페이지를 편집 중입니다. 이미지를 다시 선택하지 않으면 기존 이미지가 유지됩니다.
           </div>
         )}
+
+        {/* ─ 공지 문구 자동 입력 ─ */}
+        <Section title="🪄 공지 문구로 자동 입력 (선택)" badge={announceApplied ? `${announceApplied.length}개 항목 적용` : null}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
+            회원들에게 보낼 라운드 공지 문구(장소/일시/조편성/시상/정산/중식 안내)를 그대로 붙여넣고, 상품 리스트가 있으면 함께 넣어주세요.
+            아래 각 섹션의 항목을 자동으로 채워줍니다. 채워진 뒤에도 각 섹션에서 자유롭게 수정할 수 있습니다.
+          </div>
+          <FormRow label="공지 문구 *">
+            <textarea
+              style={{ ...inp, minHeight: '160px', resize: 'vertical', fontFamily: 'inherit' }}
+              value={announceText}
+              onChange={e => setAnnounceText(e.target.value)}
+              placeholder={'▣ 2026년 9월 라운드 안내\n"May the PAR be with you!"\n\n1. 장소 : 용인 써닝포인트CC\n...'}
+              disabled={announceStatus === 'loading'}
+            />
+          </FormRow>
+          <FormRow label="상품 리스트 (선택)">
+            <textarea
+              style={{ ...inp, minHeight: '100px', resize: 'vertical', fontFamily: 'inherit' }}
+              value={announceAwardText}
+              onChange={e => setAnnounceAwardText(e.target.value)}
+              placeholder={'구분\t분야\t인원\t기준\t상품\n1\t베스트퍼포먼스상\t1\t...\t유명 브랜드 보스턴백'}
+              disabled={announceStatus === 'loading'}
+            />
+          </FormRow>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handleAnnounceAutofill}
+              disabled={announceStatus === 'loading' || !announceText.trim()}
+              style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '8px', color: 'white', fontSize: '0.85rem', fontWeight: '700', padding: '0.6rem 1.1rem', cursor: (announceStatus === 'loading' || !announceText.trim()) ? 'not-allowed' : 'pointer', opacity: (announceStatus === 'loading' || !announceText.trim()) ? 0.6 : 1 }}
+            >
+              {announceStatus === 'loading' ? '분석 중...' : '✨ 자동 입력'}
+            </button>
+            {(announceText || announceAwardText) && (
+              <button type="button" onClick={clearAnnounce} disabled={announceStatus === 'loading'} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', color: '#ef4444', fontSize: '0.8rem', padding: '0.55rem 0.9rem', cursor: 'pointer' }}>
+                지우기
+              </button>
+            )}
+          </div>
+          {announceStatus === 'error' && <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.6rem' }}>✗ {announceError}</div>}
+          {announceStatus === 'done' && announceApplied && (
+            <div style={{ fontSize: '0.75rem', color: 'var(--accent-neon)', marginTop: '0.6rem' }}>
+              ✓ 적용됨: {announceApplied.join(', ')}
+            </div>
+          )}
+        </Section>
 
         {/* ─ 기본 정보 ─ */}
         <Section title="기본 정보">
