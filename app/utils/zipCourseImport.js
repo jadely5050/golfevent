@@ -9,7 +9,7 @@
 
 const IMAGE_EXT = /\.(jpe?g|png|webp)$/i;
 const GREEN_HINT = /그린|green/i;
-const IGNORE_HINT = /언듈레이션|undulation/i;
+const UNDULATION_HINT = /언듈레이션|undulation/i;
 const HOLE_KEY = /^([0-9]+)홀$/;
 const JSON_EXT = /\.json$/i;
 
@@ -154,7 +154,8 @@ const matchFolder = (subCourse, folders, usedFolders) => {
  * 코스 등록용 ZIP을 파싱한다.
  * @param {File|Blob|ArrayBuffer} zipFile
  * @returns {Promise<{clubName: string, distanceUnit: string, subCourses: Array}>}
- *   각 서브코스: { key, name, folder, holes, yardageFiles: File[9], greenFiles: File[] (0 또는 9) }
+ *   각 서브코스: { key, name, folder, holes, yardageFiles: File[9],
+ *   greenFiles: File[](0 또는 9), undulationFiles: File[](0 또는 9) }
  */
 export const parseCourseZip = async (zipFile) => {
   // 코스 등록 모달에서만 쓰이므로 번들 분리를 위해 동적 import 한다.
@@ -186,7 +187,7 @@ export const parseCourseZip = async (zipFile) => {
   const strippedByPath = stripCommonRoot(paths, subCourses.length);
 
   // 폴더별 이미지 분류
-  const byFolder = new Map(); // folder -> { yardage: [], green: [] }
+  const byFolder = new Map(); // folder -> { yardage: [], green: [], undulation: [] }
   for (const path of paths) {
     if (!IMAGE_EXT.test(path)) continue;
     const rel = strippedByPath[path];
@@ -195,10 +196,9 @@ export const parseCourseZip = async (zipFile) => {
     // 코스 폴더명(골프장/코스 이름)이 키워드에 걸리지 않도록 그 아래 경로만 보고 분류한다.
     const inner = segments.length > 1 ? segments.slice(1).join('/') : rel;
 
-    if (IGNORE_HINT.test(inner)) continue;
-    if (!byFolder.has(folder)) byFolder.set(folder, { yardage: [], green: [] });
+    if (!byFolder.has(folder)) byFolder.set(folder, { yardage: [], green: [], undulation: [] });
 
-    const bucket = GREEN_HINT.test(inner) ? 'green' : 'yardage';
+    const bucket = GREEN_HINT.test(inner) ? 'green' : UNDULATION_HINT.test(inner) ? 'undulation' : 'yardage';
     byFolder.get(folder)[bucket].push({ path, rel });
   }
 
@@ -249,13 +249,20 @@ export const parseCourseZip = async (zipFile) => {
         `'${label}' 폴더의 그린 이미지가 9장이 아닙니다(${images.green.length}장). 0장이면 기본 그린 이미지를 사용합니다.`
       );
     }
+    if (images.undulation.length !== 0 && images.undulation.length !== 9) {
+      throw new Error(
+        `'${label}' 폴더의 언듈레이션 이미지가 9장이 아닙니다(${images.undulation.length}장).`
+      );
+    }
 
     const yardageFiles = [];
     for (const entry of sortByHoleNumber(images.yardage)) yardageFiles.push(await toFile(entry));
     const greenFiles = [];
     for (const entry of sortByHoleNumber(images.green)) greenFiles.push(await toFile(entry));
+    const undulationFiles = [];
+    for (const entry of sortByHoleNumber(images.undulation)) undulationFiles.push(await toFile(entry));
 
-    result.push({ ...subCourse, folder: label, yardageFiles, greenFiles });
+    result.push({ ...subCourse, folder: label, yardageFiles, greenFiles, undulationFiles });
   }
 
   return { clubName, distanceUnit, subCourses: result };
