@@ -281,10 +281,8 @@ export default function EventHome({ event, slug }) {
         )}
       </div>
 
-      {/* ── 우상단 편집 버튼 ── */}
-      <button onClick={openEditModal} style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 200, background: 'rgba(15,23,42,0.85)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '10px', color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', padding: '0.4rem 0.7rem', cursor: 'pointer', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-        ✏️ 편집
-      </button>
+      {/* ── 우상단 편집 버튼(눈에 잘 안 띄는 점) ── */}
+      <button onClick={openEditModal} aria-label="편집" style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 200, width: '10px', height: '10px', padding: 0, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', cursor: 'pointer' }} />
 
       {/* ── 편집 암호 모달 ── */}
       {showEditModal && (
