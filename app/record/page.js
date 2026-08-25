@@ -593,7 +593,9 @@ export default function RecordRound() {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       if (!res.ok) throw new Error('이미지 업로드에 실패했습니다.');
       const data = await res.json();
-      urls.push(`/api/image?key=${data.key}`);
+      // R2 공개 도메인(pub-xxxx.r2.dev)은 일부 사내망에서 차단될 수 있어
+      // 클라이언트가 직접 접속하지 않도록 우리 서버의 이미지 프록시 경로를 저장한다.
+      urls.push(`/api/image?key=${encodeURIComponent(data.key)}&v=${Date.now()}`);
     }
     return urls;
   };

@@ -25,9 +25,13 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
 
   const currentHole = initialHoles[currentHoleIdx];
 
+  // R2 공개 도메인(pub-xxxx.r2.dev)은 일부 사내망에서 차단될 수 있어, key가 있으면
+  // 항상 우리 서버의 이미지 프록시 경로를 쓴다(예전에 공개 URL로 저장된 데이터도 자동 복구됨).
+  const imageSrc = (img) => (img?.key ? `/api/image?key=${encodeURIComponent(img.key)}` : img?.url || null);
+
   // Map yardage/green images to hole lookup
-  const yardageMap = Object.fromEntries((yardageImages || []).map(img => [img.hole, img.url]));
-  const greenMap = Object.fromEntries((greenImages || []).map(img => [img.hole, img.url]));
+  const yardageMap = Object.fromEntries((yardageImages || []).map(img => [img.hole, imageSrc(img)]));
+  const greenMap = Object.fromEntries((greenImages || []).map(img => [img.hole, imageSrc(img)]));
   const tipMap = Object.fromEntries((holeTips || []).map(t => [Number(t.hole), t.tip || '']));
 
   const yardageSrc = yardageMap[currentHole.hole] || null;

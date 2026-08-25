@@ -601,7 +601,10 @@ export default function GeneratePage() {
             fd.append('path', `events/${slug}/${type}`);
             const res = await fetch('/api/upload', { method: 'POST', body: fd });
             if (!res.ok) throw new Error(`업로드 실패: ${fileName}`);
-            const { url, key } = await res.json();
+            const { key } = await res.json();
+            // R2 공개 도메인(pub-xxxx.r2.dev)은 일부 사내망에서 차단될 수 있어
+            // 클라이언트가 직접 접속하지 않도록 우리 서버의 이미지 프록시 경로를 저장한다.
+            const url = `/api/image?key=${encodeURIComponent(key)}&v=${Date.now()}`;
             (type === 'yardage' ? yardageResults : greenResults).push({ hole, url, key });
           }));
           setUploadProgress(Math.round(((i + batch.length) / compressed.length) * 100));
