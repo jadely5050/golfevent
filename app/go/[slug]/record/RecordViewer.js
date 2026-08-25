@@ -216,7 +216,7 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
               {groups.length > 0 ? groups.map((g, i) => (
                 <button key={i} onClick={() => handleGroupSelect(g)} style={{ padding: '1.2rem', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: 'white', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
                   <div style={{ fontWeight: 'bold', color: (g.start || 'valley') === 'valley' ? 'var(--accent-neon)' : '#38bdf8', fontSize: '1rem', marginBottom: '0.3rem' }}>
-                    {g.course || `${i + 1}조`} ({g.startLabel ? `${g.startLabel} 코스 시작` : (g.start || 'valley') === 'valley' ? '밸리 코스 시작' : '레이크 코스 시작'})
+                    {g.course || `${i + 1}조`} ({g.startLabel ? `${g.startLabel} 코스 시작` : (g.start || 'valley') === 'valley' ? '1H 코스 시작' : '10H 코스 시작'})
                   </div>
                   <div style={{ fontSize: '0.95rem', color: '#fff', fontWeight: '500' }}>{g.players}</div>
                   {g.time && <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>티오프 {g.time}</div>}
