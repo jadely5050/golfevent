@@ -41,12 +41,12 @@ export default function YardageDrawingBoard({ yardageSrc, undulationSrc }) {
       onTouchEnd={handleTouchEnd}
       style={{ overflow: 'hidden', height: '100%', width: '100%', display: 'flex', flexDirection: 'column', WebkitOverflowScrolling: 'touch' }}
     >
-      <div style={{ transform: `scale(${scale})`, transformOrigin: 'center top', flex: undulationSrc ? '1 1 55%' : '1 1 auto', minHeight: 0, width: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', transition: 'transform 0.1s ease-out' }}>
+      <div style={{ transform: `scale(${scale})`, transformOrigin: 'center top', flex: undulationSrc ? '0 0 auto' : '1 1 auto', minHeight: 0, width: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', transition: 'transform 0.1s ease-out' }}>
         {yardageSrc ? (
           <img
             src={yardageSrc}
             alt="야디지"
-            style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', objectPosition: 'center top', display: 'block', pointerEvents: 'none', userSelect: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', borderRadius: '4px' }}
+            style={{ maxWidth: '100%', maxHeight: undulationSrc ? 'none' : '100%', width: undulationSrc ? '100%' : 'auto', height: 'auto', objectFit: 'contain', objectPosition: 'center top', display: 'block', pointerEvents: 'none', userSelect: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', borderRadius: '4px' }}
             onError={(e) => { e.target.style.display = 'none'; }}
           />
         ) : (
@@ -55,12 +55,13 @@ export default function YardageDrawingBoard({ yardageSrc, undulationSrc }) {
       </div>
 
       {undulationSrc && (
-        <div style={{ flex: '1 1 45%', minHeight: 0, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.75rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        // 우하단 공략/그린 썸네일(약 100px)과 안 겹치도록 오른쪽 여백을 남기고, 야디지 바로 아래에 붙인다.
+        <div style={{ flex: '1 1 auto', minHeight: 0, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '0.3rem 100px 0.4rem 0.75rem', overflow: 'hidden' }}>
           <div style={{ fontSize: '0.65rem', color: '#38bdf8', fontWeight: 'bold', marginBottom: '2px' }}>언듈레이션</div>
           <img
             src={undulationSrc}
             alt="언듈레이션"
-            style={{ maxWidth: '100%', maxHeight: 'calc(100% - 16px)', objectFit: 'contain', display: 'block', borderRadius: '4px' }}
+            style={{ maxWidth: '100%', maxHeight: 'calc(100% - 16px)', objectFit: 'contain', objectPosition: 'left top', display: 'block', borderRadius: '4px' }}
             onError={(e) => { e.target.style.display = 'none'; }}
           />
         </div>
