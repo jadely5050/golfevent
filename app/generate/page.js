@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { compressImage } from '../utils/imageCompression';
+import { parseCourseZip, buildCourseLayout } from '../utils/zipCourseImport';
 
 const DEFAULT_PAR = [4, 4, 4, 3, 4, 3, 5, 4, 5, 4, 4, 5, 4, 3, 4, 5, 3, 4];
 const RESERVED = ['api', 'go', 'generate', 'dashboard', 'record', '_next', 'public', 'static'];
@@ -106,6 +107,62 @@ function TipUploadRow({ valleyName, lakeName, status, error, valleyTips, lakeTip
   );
 }
 
+function CourseZipRow({ fileName, status, error, parsed, applied, repeatNine, outIdx, inIdx, onUpload, onOption }) {
+  const ref = useRef(null);
+  const color = status === 'loading' ? '#facc15' : status === 'done' ? 'var(--accent-neon)' : status === 'error' ? '#ef4444' : 'var(--text-secondary)';
+  const msg = status === 'loading'
+    ? `ZIP 분석 중... (${fileName})`
+    : status === 'done' && applied
+      ? `✓ 야디지 ${applied.yardage}/18 · 그린 ${applied.green ? '18/18' : '없음(직접 선택)'} · 공략 ${applied.tips}/18 · PAR 자동 입력됨`
+      : status === 'error' ? `✗ ${error || '오류'}` : '';
+
+  return (
+    <div style={{ border: '1px solid var(--glass-border)', borderRadius: '10px', padding: '0.75rem' }}>
+      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <input ref={ref} type="file" accept=".zip,application/zip" style={{ display: 'none' }} onChange={e => { if (e.target.files[0]) onUpload(e.target.files[0]); e.target.value = ''; }} />
+        <button type="button" onClick={() => ref.current?.click()} disabled={status === 'loading'} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'white', fontSize: '0.85rem', padding: '0.5rem 0.9rem', cursor: status === 'loading' ? 'not-allowed' : 'pointer', opacity: status === 'loading' ? 0.5 : 1 }}>
+          🗂 코스 ZIP 파일 선택
+        </button>
+      </div>
+      {msg && <div style={{ fontSize: '0.72rem', color, marginTop: '0.5rem' }}>{msg}</div>}
+
+      {parsed && (
+        <div style={{ marginTop: '0.75rem' }}>
+          <div style={{ fontSize: '0.8rem', marginBottom: '0.35rem' }}>
+            <strong style={{ color: 'var(--accent-neon)' }}>{parsed.clubName || '(골프장 이름 없음)'}</strong>
+            <span style={{ color: 'var(--text-secondary)' }}> · 서브코스 {parsed.subCourses.length}개</span>
+          </div>
+          {parsed.subCourses.map((sc, i) => (
+            <div key={`${sc.key}-${i}`} style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+              {sc.name} — 야디지 {sc.yardageFiles.length}장 / 그린 {sc.greenFiles.length === 0 ? '없음' : `${sc.greenFiles.length}장`}
+            </div>
+          ))}
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', marginTop: '0.7rem', cursor: 'pointer' }}>
+            <input type="checkbox" checked={repeatNine} onChange={e => onOption({ repeatNine: e.target.checked })} />
+            9홀을 2번 도는 골프장입니다
+          </label>
+
+          {!repeatNine && parsed.subCourses.length > 1 && (
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
+              {[['1H 코스 (1~9홀)', outIdx, v => onOption({ outIndex: v })], ['10H 코스 (10~18홀)', inIdx, v => onOption({ inIndex: v })]].map(([label, value, setter]) => (
+                <div key={label} style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginBottom: '2px' }}>{label}</div>
+                  <select style={{ ...inp, padding: '0.4rem 0.5rem', fontSize: '0.82rem' }} value={value} onChange={e => setter(Number(e.target.value))}>
+                    {parsed.subCourses.map((sc, i) => (
+                      <option key={`${sc.key}-${i}`} value={i}>{sc.name}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ImageGrid({ files, onFileChange, bulkRef }) {
   return (
     <>
@@ -185,6 +242,16 @@ export default function GeneratePage() {
 
   // Hole tips (1-9: valley/1H, 10-18: lake/10H). Array of { hole, tip } length 18.
   const [holeTips, setHoleTips] = useState(Array.from({ length: 18 }, (_, i) => ({ hole: i + 1, tip: '' })));
+  // 코스 ZIP 일괄 등록
+  const [zipFileName, setZipFileName] = useState('');
+  const [zipParsed, setZipParsed] = useState(null);
+  const [zipStatus, setZipStatus] = useState(null); // null | 'loading' | 'done' | 'error'
+  const [zipError, setZipError] = useState('');
+  const [zipRepeatNine, setZipRepeatNine] = useState(false);
+  const [zipOutIdx, setZipOutIdx] = useState(0);
+  const [zipInIdx, setZipInIdx] = useState(1);
+  const [zipApplied, setZipApplied] = useState(null); // { yardage, green, tips }
+
   const [tipStatus, setTipStatus] = useState(null); // null | 'loading' | 'done' | 'error'
   const [tipError, setTipError] = useState('');
   const [tipResult, setTipResult] = useState({ valleyCount: 0, lakeCount: 0 });
@@ -329,6 +396,79 @@ export default function GeneratePage() {
       setTipStatus('error');
       setTipError(err.message || '오류');
     }
+  };
+
+  // ── 코스 ZIP 일괄 등록 ──────────────────────────────────────────────
+  // ZIP 하나로 PAR / 야디지 / 그린 / 홀 공략을 한 번에 채운다.
+  const applyZipLayout = (parsed, opts) => {
+    let layout;
+    try {
+      layout = buildCourseLayout(parsed, opts);
+    } catch (err) {
+      setZipStatus('error');
+      setZipError(err.message);
+      setZipApplied(null);
+      return;
+    }
+
+    const yardage = layout.sections.flatMap(sec => sec.yardageFiles);
+    const greens = layout.sections.flatMap(sec => sec.greenFiles);
+
+    setParInfo(layout.holes.map(h => Number(h.par) || 4));
+    setYardageFiles(Array.from({ length: 18 }, (_, i) => yardage[i] || null));
+    if (greens.length === 18) setGreenFiles(greens.slice());
+
+    const tips = layout.holes.map(h => ({ hole: h.hole, tip: h.tip || '' }));
+    const tipCount = tips.filter(t => t.tip).length;
+    if (tipCount > 0) {
+      setHoleTips(tips);
+      setTipResult({
+        valleyCount: tips.slice(0, 9).filter(t => t.tip).length,
+        lakeCount: tips.slice(9, 18).filter(t => t.tip).length
+      });
+      setTipStatus('done');
+      setTipError('');
+    }
+
+    setValleyCourseName(layout.sections[0].name);
+    setLakeCourseName(layout.sections[1].name);
+    if (layout.courseName) setCourseName(prev => prev || layout.courseName);
+
+    setZipApplied({ yardage: yardage.length, green: greens.length === 18 ? 18 : 0, tips: tipCount });
+    setZipStatus('done');
+    setZipError('');
+  };
+
+  const handleCourseZipUpload = async (file) => {
+    setZipFileName(file.name);
+    setZipStatus('loading');
+    setZipError('');
+    setZipApplied(null);
+    setZipParsed(null);
+
+    try {
+      const parsed = await parseCourseZip(file);
+      const repeatNine = parsed.subCourses.length === 1;
+      const outIdx = 0;
+      const inIdx = parsed.subCourses.length > 1 ? 1 : 0;
+      setZipParsed(parsed);
+      setZipRepeatNine(repeatNine);
+      setZipOutIdx(outIdx);
+      setZipInIdx(inIdx);
+      applyZipLayout(parsed, { repeatNine, outIndex: outIdx, inIndex: inIdx });
+    } catch (err) {
+      console.error('ZIP parse error:', err);
+      setZipStatus('error');
+      setZipError(err.message || 'ZIP 파일을 읽을 수 없습니다.');
+    }
+  };
+
+  const updateZipOption = (patch) => {
+    const next = { repeatNine: zipRepeatNine, outIndex: zipOutIdx, inIndex: zipInIdx, ...patch };
+    setZipRepeatNine(next.repeatNine);
+    setZipOutIdx(next.outIndex);
+    setZipInIdx(next.inIndex);
+    if (zipParsed) applyZipLayout(zipParsed, next);
   };
 
   const clearTips = () => {
@@ -601,6 +741,26 @@ export default function GeneratePage() {
             </div>
           )}
         </div>
+
+        {/* ─ 코스 ZIP 일괄 등록 ─ */}
+        <Section title="코스 ZIP 일괄 등록 (선택)" badge={zipApplied ? '적용됨' : null}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
+            서브코스 폴더(야디지 9장 + 그린 9장 또는 0장)와 코스정보 JSON(파/공략)을 담은 ZIP을 올리면
+            PAR · 야디지 · 그린 · 홀 공략과 1H/10H 코스명을 한 번에 채웁니다.
+          </div>
+          <CourseZipRow
+            fileName={zipFileName}
+            status={zipStatus}
+            error={zipError}
+            parsed={zipParsed}
+            applied={zipApplied}
+            repeatNine={zipRepeatNine}
+            outIdx={zipOutIdx}
+            inIdx={zipInIdx}
+            onUpload={handleCourseZipUpload}
+            onOption={updateZipOption}
+          />
+        </Section>
 
         {/* ─ PAR 정보 ─ */}
         <Section title="PAR 정보 (18홀)">
