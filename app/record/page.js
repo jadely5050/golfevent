@@ -7,6 +7,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { CSS } from '@dnd-kit/utilities';
 import exifr from 'exifr';
 import { compressImage } from '../utils/imageCompression';
+import { parseCourseZip, buildCourseLayout } from '../utils/zipCourseImport';
 import YardageDrawingBoard from './YardageDrawingBoard';
 import { getCurrentLocation } from '../utils/location';
 
@@ -136,6 +137,17 @@ export default function RecordRound() {
   const [greenFiles, setGreenFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadTotal, setUploadTotal] = useState(36);
+
+  // ZIP 일괄 등록 상태
+  const [courseInputMode, setCourseInputMode] = useState('zip'); // 'zip' | 'manual'
+  const [zipFileName, setZipFileName] = useState('');
+  const [zipParsed, setZipParsed] = useState(null);
+  const [zipError, setZipError] = useState('');
+  const [isParsingZip, setIsParsingZip] = useState(false);
+  const [repeatNine, setRepeatNine] = useState(false);
+  const [outCourseIdx, setOutCourseIdx] = useState(0);
+  const [inCourseIdx, setInCourseIdx] = useState(1);
 
   // DnD Sensors
   const sensors = useSensors(
@@ -519,60 +531,130 @@ export default function RecordRound() {
     }
   };
 
-  const handleUploadCourse = async () => {
-    if (!newCourseName) return alert('코스명을 입력해주세요.');
-    if (yardageFiles.length !== 18) return alert('야디지 이미지를 18장 선택해주세요.');
-    if (greenFiles.length !== 18) return alert('그린 이미지를 18장 선택해주세요.');
+  // 등록된 코스에 홀 정보(파)가 있으면 라운드에 그대로 반영한다.
+  const applyCoursePars = (course) => {
+    const pars = Array.isArray(course?.par_info) ? course.par_info : [];
+    if (pars.length !== 18) return;
+    setHoles(prev => prev.map((h, i) => ({ ...h, par: Number(pars[i]) || h.par })));
+    setParDraft(pars.map(p => Number(p) || 4));
+  };
 
-    setIsUploading(true);
-    setUploadProgress(0);
+  const resetCourseForm = () => {
+    setNewCourseName('');
+    setYardageFiles([]);
+    setGreenFiles([]);
+    setZipFileName('');
+    setZipParsed(null);
+    setZipError('');
+    setRepeatNine(false);
+    setOutCourseIdx(0);
+    setInCourseIdx(1);
+  };
+
+  const handleZipSelect = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setZipFileName(file.name);
+    setZipParsed(null);
+    setZipError('');
+    setIsParsingZip(true);
 
     try {
-      const courseId = newCourseName.trim();
-      const yardageUrls = [];
-      const greenUrls = [];
+      const parsed = await parseCourseZip(file);
+      setZipParsed(parsed);
+      setRepeatNine(parsed.subCourses.length === 1);
+      setOutCourseIdx(0);
+      setInCourseIdx(parsed.subCourses.length > 1 ? 1 : 0);
+      if (parsed.clubName) setNewCourseName(parsed.clubName);
+    } catch (err) {
+      console.error('ZIP parse error:', err);
+      setZipError(err.message || 'ZIP 파일을 읽을 수 없습니다.');
+    } finally {
+      setIsParsingZip(false);
+    }
+  };
 
-      // 1. 야디지 이미지 업로드
-      for (let i = 0; i < 18; i++) {
-        setUploadProgress(i + 1);
-        const file = yardageFiles[i];
-        const compressed = await compressImage(file, { maxWidth: 1280, quality: 0.8 });
+  const uploadCourseImages = async (files, courseId, kind, offset) => {
+    const urls = [];
+    for (let i = 0; i < files.length; i++) {
+      setUploadProgress(offset + i + 1);
+      const compressed = await compressImage(
+        files[i],
+        kind === 'green' ? { maxWidth: 1024, quality: 0.8 } : { maxWidth: 1280, quality: 0.8 }
+      );
 
-        const formData = new FormData();
-        formData.append('file', compressed);
-        formData.append('fileName', `${i + 1}.jpg`);
-        formData.append('path', `yardage/${courseId}/course`);
+      const formData = new FormData();
+      formData.append('file', compressed);
+      formData.append('fileName', `${i + 1}.jpg`);
+      formData.append('path', `yardage/${courseId}/${kind}`);
 
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-        yardageUrls.push(`/api/image?key=${data.key}`);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('이미지 업로드에 실패했습니다.');
+      const data = await res.json();
+      urls.push(`/api/image?key=${data.key}`);
+    }
+    return urls;
+  };
+
+  const handleUploadCourse = async () => {
+    const courseId = newCourseName.trim();
+    if (!courseId) return alert('코스명을 입력해주세요.');
+
+    let yardageList = [];
+    let greenList = [];
+    let parInfo = [];
+    let holeTips = [];
+    let sectionNames = [];
+
+    if (courseInputMode === 'zip') {
+      if (!zipParsed) return alert('ZIP 파일을 선택해주세요.');
+
+      let layout;
+      try {
+        layout = buildCourseLayout(zipParsed, {
+          repeatNine,
+          outIndex: outCourseIdx,
+          inIndex: inCourseIdx
+        });
+      } catch (err) {
+        return alert(err.message);
       }
 
-      // 2. 그린 이미지 업로드
-      for (let i = 0; i < 18; i++) {
-        setUploadProgress(18 + i + 1);
-        const file = greenFiles[i];
-        const compressed = await compressImage(file, { maxWidth: 1024, quality: 0.8 });
+      yardageList = layout.sections.flatMap(sec => sec.yardageFiles);
+      const greens = layout.sections.flatMap(sec => sec.greenFiles);
+      greenList = greens.length === 18 ? greens : []; // 그린 이미지가 없으면 앱 기본 이미지 사용
+      parInfo = layout.holes.map(h => h.par);
+      holeTips = layout.holes.map(h => ({ hole: h.hole, tip: h.tip }));
+      sectionNames = layout.sections.map(sec => sec.name);
+    } else {
+      if (yardageFiles.length !== 18) return alert('야디지 이미지를 18장 선택해주세요.');
+      if (greenFiles.length !== 18) return alert('그린 이미지를 18장 선택해주세요.');
+      yardageList = yardageFiles;
+      greenList = greenFiles;
+    }
 
-        const formData = new FormData();
-        formData.append('file', compressed);
-        formData.append('fileName', `${i + 1}.jpg`);
-        formData.append('path', `yardage/${courseId}/green`);
+    const total = yardageList.length + greenList.length;
+    setUploadTotal(total);
+    setUploadProgress(0);
+    setIsUploading(true);
 
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-        greenUrls.push(`/api/image?key=${data.key}`);
-      }
+    try {
+      const yardageUrls = await uploadCourseImages(yardageList, courseId, 'course', 0);
+      const greenUrls = await uploadCourseImages(greenList, courseId, 'green', yardageList.length);
 
-      // 3. DB 저장
       const res = await fetch('/api/courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: courseId,
-          name: newCourseName,
+          name: courseId,
           yardage_images: yardageUrls,
-          green_images: greenUrls
+          green_images: greenUrls,
+          par_info: parInfo,
+          hole_tips: holeTips,
+          section_names: sectionNames
         })
       });
 
@@ -580,16 +662,14 @@ export default function RecordRound() {
         alert('코스가 성공적으로 등록되었습니다.');
         fetchCourses();
         setShowAddCourseModal(false);
-        setNewCourseName('');
-        setYardageFiles([]);
-        setGreenFiles([]);
+        resetCourseForm();
       } else {
         const error = await res.json();
         alert(`저장 실패: ${error.error}`);
       }
     } catch (err) {
       console.error('Upload course error:', err);
-      alert('업로드 중 오류가 발생했습니다.');
+      alert(err.message || '업로드 중 오류가 발생했습니다.');
     } finally {
       setIsUploading(false);
     }
@@ -650,8 +730,12 @@ export default function RecordRound() {
                     const id = e.target.value;
                     setSelectedCourseId(id);
                     const c = courses.find(item => item.id === id);
-                    if (c) setCourse(c.name);
-                    else setCourse(id);
+                    if (c) {
+                      setCourse(c.name);
+                      applyCoursePars(c);
+                    } else {
+                      setCourse(id);
+                    }
                   }}
                   style={{ flex: 1 }}
                 >
@@ -1036,8 +1120,12 @@ export default function RecordRound() {
                     const id = e.target.value;
                     setSelectedCourseId(id);
                     const c = courses.find(item => item.id === id);
-                    if (c) setCourseDraft(c.name);
-                    else setCourseDraft(id);
+                    if (c) {
+                      setCourseDraft(c.name);
+                      applyCoursePars(c);
+                    } else {
+                      setCourseDraft(id);
+                    }
                   }}
                   style={{ flex: 1, padding: '0.5rem', fontSize: '0.9rem' }}
                 >
@@ -1233,6 +1321,96 @@ export default function RecordRound() {
             </div>
 
             <div className="form-group">
+              <label className="form-label">등록 방식</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {[['zip', 'ZIP 파일로 한번에'], ['manual', '이미지 직접 선택']].map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    className={`btn ${courseInputMode === mode ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ flex: 1, padding: '0.5rem', fontSize: '0.85rem' }}
+                    onClick={() => setCourseInputMode(mode)}
+                    disabled={isUploading}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {courseInputMode === 'zip' ? (
+              <>
+                <div className="form-group">
+                  <label className="form-label">코스 ZIP 파일</label>
+                  <input
+                    type="file"
+                    accept=".zip,application/zip"
+                    onChange={handleZipSelect}
+                    disabled={isUploading || isParsingZip}
+                    className="form-input"
+                  />
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.3rem', lineHeight: 1.5 }}>
+                    서브코스 폴더(야디지 9장 + 그린 9장 또는 0장)와 코스정보 JSON(파/공략)을 담은 ZIP을 올려주세요.
+                  </div>
+                  {isParsingZip && (
+                    <div style={{ fontSize: '0.8rem', color: 'var(--accent-neon)', marginTop: '0.4rem' }}>
+                      ZIP 분석 중... ({zipFileName})
+                    </div>
+                  )}
+                  {zipError && (
+                    <div style={{ fontSize: '0.8rem', color: '#ff6b6b', marginTop: '0.4rem' }}>
+                      {zipError}
+                    </div>
+                  )}
+                </div>
+
+                {zipParsed && (
+                  <div className="form-group" style={{ background: 'rgba(255,255,255,0.03)', padding: '0.8rem', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                      <strong style={{ color: 'var(--accent-neon)' }}>{zipParsed.clubName || '(골프장 이름 없음)'}</strong>
+                      <span style={{ color: 'var(--text-secondary)' }}> · 서브코스 {zipParsed.subCourses.length}개</span>
+                    </div>
+                    {zipParsed.subCourses.map((sc, idx) => (
+                      <div key={`${sc.key}-${idx}`} style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                        {sc.name} — 야디지 {sc.yardageFiles.length}장 / 그린 {sc.greenFiles.length === 0 ? '기본 이미지' : `${sc.greenFiles.length}장`}
+                      </div>
+                    ))}
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', marginTop: '0.7rem', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={repeatNine}
+                        onChange={(e) => setRepeatNine(e.target.checked)}
+                        disabled={isUploading}
+                      />
+                      9홀을 2번 도는 골프장입니다
+                    </label>
+
+                    {!repeatNine && zipParsed.subCourses.length > 1 && (
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem' }}>
+                        {[['OUT (1~9홀)', outCourseIdx, setOutCourseIdx], ['IN (10~18홀)', inCourseIdx, setInCourseIdx]].map(([label, value, setter]) => (
+                          <div key={label} style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>{label}</div>
+                            <select
+                              className="form-input"
+                              value={value}
+                              onChange={(e) => setter(Number(e.target.value))}
+                              disabled={isUploading}
+                              style={{ padding: '0.4rem', fontSize: '0.85rem' }}
+                            >
+                              {zipParsed.subCourses.map((sc, idx) => (
+                                <option key={`${sc.key}-${idx}`} value={idx}>{sc.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+            <div className="form-group">
               <label className="form-label">야디지 이미지 (18장)</label>
               <input
                 type="file"
@@ -1261,20 +1439,22 @@ export default function RecordRound() {
                 선택됨: {greenFiles.length} / 18
               </div>
             </div>
+              </>
+            )}
 
             {isUploading && (
               <div style={{ margin: '1rem 0', textAlign: 'center' }}>
                 <div style={{ marginBottom: '0.5rem', color: 'var(--accent-neon)' }}>
-                  업로드 중... ({uploadProgress}/36)
+                  업로드 중... ({uploadProgress}/{uploadTotal})
                 </div>
                 <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{ width: `${(uploadProgress / 36) * 100}%`, height: '100%', background: 'var(--accent-neon)', transition: 'width 0.3s' }}></div>
+                  <div style={{ width: `${(uploadProgress / (uploadTotal || 1)) * 100}%`, height: '100%', background: 'var(--accent-neon)', transition: 'width 0.3s' }}></div>
                 </div>
               </div>
             )}
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-              <button className="btn btn-secondary" onClick={() => setShowAddCourseModal(false)} disabled={isUploading}>
+              <button className="btn btn-secondary" onClick={() => { setShowAddCourseModal(false); resetCourseForm(); }} disabled={isUploading}>
                 취소
               </button>
               <button className="btn btn-primary" onClick={handleUploadCourse} disabled={isUploading}>
