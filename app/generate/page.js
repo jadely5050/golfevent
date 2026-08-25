@@ -241,6 +241,7 @@ export default function GeneratePage() {
   const [undulationFiles, setUndulationFiles] = useState(Array(18).fill(null));
   const yardageBulkRef = useRef(null);
   const greenBulkRef = useRef(null);
+  const undulationBulkRef = useRef(null);
 
   // Hole tips (1-9: valley/1H, 10-18: lake/10H). Array of { hole, tip } length 18.
   const [holeTips, setHoleTips] = useState(Array.from({ length: 18 }, (_, i) => ({ hole: i + 1, tip: '' })));
@@ -368,6 +369,7 @@ export default function GeneratePage() {
   // Image handlers
   const handleYardageChange = (i, f) => setYardageFiles(prev => { const a = [...prev]; a[i] = f; return a; });
   const handleGreenChange = (i, f) => setGreenFiles(prev => { const a = [...prev]; a[i] = f; return a; });
+  const handleUndulationChange = (i, f) => setUndulationFiles(prev => { const a = [...prev]; a[i] = f; return a; });
 
   // Hole tip JSON upload handler (single file → Gemini가 valley/lake 자동 분리)
   const handleTipJsonUpload = async (file) => {
@@ -930,6 +932,15 @@ export default function GeneratePage() {
         <Section title="그린 이미지" badge={`${greenFiles.filter(Boolean).length}/18`}>
           {isEditing && <div style={{ fontSize: '0.75rem', color: '#f97316', marginBottom: '8px' }}>기존 이미지가 표시됩니다. 교체할 홀만 클릭하여 새 파일을 선택하세요.</div>}
           <ImageGrid files={greenFiles} onFileChange={handleGreenChange} bulkRef={greenBulkRef} />
+        </Section>
+
+        {/* ─ 언듈레이션 이미지 (선택) ─ */}
+        <Section title="언듈레이션 이미지 (선택)" badge={`${undulationFiles.filter(Boolean).length}/18`}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+            코스 ZIP에 언듈레이션 폴더가 있으면 자동으로 채워집니다. 야디지 화면 좌하단에 표시됩니다.
+          </div>
+          {isEditing && <div style={{ fontSize: '0.75rem', color: '#f97316', marginBottom: '8px' }}>기존 이미지가 표시됩니다. 교체할 홀만 클릭하여 새 파일을 선택하세요.</div>}
+          <ImageGrid files={undulationFiles} onFileChange={handleUndulationChange} bulkRef={undulationBulkRef} />
         </Section>
 
         {/* ─ 홀 공략 (JSON 업로드 → Gemini 변환) ─ */}
