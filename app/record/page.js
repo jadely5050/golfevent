@@ -1373,7 +1373,7 @@ export default function RecordRound() {
                     </div>
                     {zipParsed.subCourses.map((sc, idx) => (
                       <div key={`${sc.key}-${idx}`} style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                        {sc.name} — 야디지 {sc.yardageFiles.length}장 / 그린 {sc.greenFiles.length === 0 ? '기본 이미지' : `${sc.greenFiles.length}장`}
+                        {sc.name} — 야디지 {sc.yardageFiles.length}장 / 그린 {sc.greenFiles.length === 0 ? '기본 이미지' : `${sc.greenFiles.length}장`} / 언듈레이션 {sc.undulationFiles.length === 0 ? '없음' : `${sc.undulationFiles.length}장`}
                       </div>
                     ))}
 

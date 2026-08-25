@@ -113,7 +113,7 @@ function CourseZipRow({ fileName, status, error, parsed, applied, repeatNine, ou
   const msg = status === 'loading'
     ? `ZIP 분석 중... (${fileName})`
     : status === 'done' && applied
-      ? `✓ 야디지 ${applied.yardage}/18 · 그린 ${applied.green ? '18/18' : '없음(직접 선택)'} · 공략 ${applied.tips}/18 · PAR 자동 입력됨`
+      ? `✓ 야디지 ${applied.yardage}/18 · 그린 ${applied.green ? '18/18' : '없음(직접 선택)'} · 언듈레이션 ${applied.undulation ? '18/18' : '없음'} · 공략 ${applied.tips}/18 · PAR 자동 입력됨`
       : status === 'error' ? `✗ ${error || '오류'}` : '';
 
   return (
@@ -134,7 +134,7 @@ function CourseZipRow({ fileName, status, error, parsed, applied, repeatNine, ou
           </div>
           {parsed.subCourses.map((sc, i) => (
             <div key={`${sc.key}-${i}`} style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-              {sc.name} — 야디지 {sc.yardageFiles.length}장 / 그린 {sc.greenFiles.length === 0 ? '없음' : `${sc.greenFiles.length}장`}
+              {sc.name} — 야디지 {sc.yardageFiles.length}장 / 그린 {sc.greenFiles.length === 0 ? '없음' : `${sc.greenFiles.length}장`} / 언듈레이션 {sc.undulationFiles.length === 0 ? '없음' : `${sc.undulationFiles.length}장`}
             </div>
           ))}
 
@@ -198,6 +198,7 @@ export default function GeneratePage() {
   // Existing image records (for key preservation on edit)
   const [existingYardageImages, setExistingYardageImages] = useState([]);
   const [existingGreenImages, setExistingGreenImages] = useState([]);
+  const [existingUndulationImages, setExistingUndulationImages] = useState([]);
 
   // Basic
   const [slug, setSlug] = useState('');
@@ -237,6 +238,7 @@ export default function GeneratePage() {
   // Images (File | string URL | null)
   const [yardageFiles, setYardageFiles] = useState(Array(18).fill(null));
   const [greenFiles, setGreenFiles] = useState(Array(18).fill(null));
+  const [undulationFiles, setUndulationFiles] = useState(Array(18).fill(null));
   const yardageBulkRef = useRef(null);
   const greenBulkRef = useRef(null);
 
@@ -257,7 +259,7 @@ export default function GeneratePage() {
   const [zipRepeatNine, setZipRepeatNine] = useState(false);
   const [zipOutIdx, setZipOutIdx] = useState(0);
   const [zipInIdx, setZipInIdx] = useState(1);
-  const [zipApplied, setZipApplied] = useState(null); // { yardage, green, tips }
+  const [zipApplied, setZipApplied] = useState(null); // { yardage, green, undulation, tips }
 
   const [tipStatus, setTipStatus] = useState(null); // null | 'loading' | 'done' | 'error'
   const [tipError, setTipError] = useState('');
@@ -313,10 +315,13 @@ export default function GeneratePage() {
         // Pre-fill images from existing URLs
         const yardageByHole = Object.fromEntries((event.yardage_images || []).map(img => [img.hole, img.url]));
         const greenByHole = Object.fromEntries((event.green_images || []).map(img => [img.hole, img.url]));
+        const undulationByHole = Object.fromEntries((event.undulation_images || []).map(img => [img.hole, img.url]));
         setYardageFiles(Array.from({ length: 18 }, (_, i) => yardageByHole[i + 1] || null));
         setGreenFiles(Array.from({ length: 18 }, (_, i) => greenByHole[i + 1] || null));
+        setUndulationFiles(Array.from({ length: 18 }, (_, i) => undulationByHole[i + 1] || null));
         setExistingYardageImages(event.yardage_images || []);
         setExistingGreenImages(event.green_images || []);
+        setExistingUndulationImages(event.undulation_images || []);
         if (Array.isArray(event.hole_tips) && event.hole_tips.length) {
           const map = Object.fromEntries(event.hole_tips.map(t => [Number(t.hole), t.tip || '']));
           const next = Array.from({ length: 18 }, (_, i) => ({ hole: i + 1, tip: map[i + 1] || '' }));
@@ -483,10 +488,12 @@ export default function GeneratePage() {
 
     const yardage = layout.sections.flatMap(sec => sec.yardageFiles);
     const greens = layout.sections.flatMap(sec => sec.greenFiles);
+    const undulations = layout.sections.flatMap(sec => sec.undulationFiles);
 
     setParInfo(layout.holes.map(h => Number(h.par) || 4));
     setYardageFiles(Array.from({ length: 18 }, (_, i) => yardage[i] || null));
     if (greens.length === 18) setGreenFiles(greens.slice());
+    setUndulationFiles(undulations.length === 18 ? undulations.slice() : Array(18).fill(null));
 
     const tips = layout.holes.map(h => ({ hole: h.hole, tip: h.tip || '' }));
     const tipCount = tips.filter(t => t.tip).length;
@@ -504,7 +511,7 @@ export default function GeneratePage() {
     setLakeCourseName(layout.sections[1].name);
     if (layout.courseName) setCourseName(prev => prev || layout.courseName);
 
-    setZipApplied({ yardage: yardage.length, green: greens.length === 18 ? 18 : 0, tips: tipCount });
+    setZipApplied({ yardage: yardage.length, green: greens.length === 18 ? 18 : 0, undulation: undulations.length === 18 ? 18 : 0, tips: tipCount });
     setZipStatus('done');
     setZipError('');
   };
@@ -573,6 +580,7 @@ export default function GeneratePage() {
       // Separate: existing URLs (keep) vs new Files (upload)
       const yardageJobs = yardageFiles.map((f, i) => ({ f, hole: i + 1, fileName: `h${i + 1}.jpg`, type: 'yardage' }));
       const greenJobs = greenFiles.map((f, i) => ({ f, hole: i + 1, fileName: `g${i + 1}.jpg`, type: 'green' }));
+      const undulationJobs = undulationFiles.map((f, i) => ({ f, hole: i + 1, fileName: `u${i + 1}.jpg`, type: 'undulation' }));
 
       const yardageResults = yardageJobs
         .filter(j => typeof j.f === 'string')
@@ -580,8 +588,12 @@ export default function GeneratePage() {
       const greenResults = greenJobs
         .filter(j => typeof j.f === 'string')
         .map(j => existingGreenImages.find(img => img.hole === j.hole) || { hole: j.hole, url: j.f });
+      const undulationResults = undulationJobs
+        .filter(j => typeof j.f === 'string')
+        .map(j => existingUndulationImages.find(img => img.hole === j.hole) || { hole: j.hole, url: j.f });
 
-      const toUpload = [...yardageJobs, ...greenJobs].filter(j => j.f instanceof File);
+      const resultsByType = { yardage: yardageResults, green: greenResults, undulation: undulationResults };
+      const toUpload = [...yardageJobs, ...greenJobs, ...undulationJobs].filter(j => j.f instanceof File);
 
       if (toUpload.length > 0) {
         setSubmitStep('이미지 압축 중...');
@@ -605,7 +617,7 @@ export default function GeneratePage() {
             // R2 공개 도메인(pub-xxxx.r2.dev)은 일부 사내망에서 차단될 수 있어
             // 클라이언트가 직접 접속하지 않도록 우리 서버의 이미지 프록시 경로를 저장한다.
             const url = `/api/image?key=${encodeURIComponent(key)}&v=${Date.now()}`;
-            (type === 'yardage' ? yardageResults : greenResults).push({ hole, url, key });
+            resultsByType[type].push({ hole, url, key });
           }));
           setUploadProgress(Math.round(((i + batch.length) / compressed.length) * 100));
         }
@@ -613,6 +625,7 @@ export default function GeneratePage() {
 
       yardageResults.sort((a, b) => a.hole - b.hole);
       greenResults.sort((a, b) => a.hole - b.hole);
+      undulationResults.sort((a, b) => a.hole - b.hole);
 
       setSubmitStep('페이지 저장 중...');
       const payload = {
@@ -635,6 +648,7 @@ export default function GeneratePage() {
         par_info: parInfo,
         yardage_images: yardageResults,
         green_images: greenResults,
+        undulation_images: undulationResults,
         hole_tips: holeTips,
       };
 
@@ -865,8 +879,8 @@ export default function GeneratePage() {
         {/* ─ 코스 ZIP 일괄 등록 ─ */}
         <Section title="코스 ZIP 일괄 등록 (선택)" badge={zipApplied ? '적용됨' : null}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
-            서브코스 폴더(야디지 9장 + 그린 9장 또는 0장)와 코스정보 JSON(파/공략)을 담은 ZIP을 올리면
-            PAR · 야디지 · 그린 · 홀 공략과 1H/10H 코스명을 한 번에 채웁니다.
+            서브코스 폴더(야디지 9장 + 그린/언듈레이션 각 9장 또는 0장)와 코스정보 JSON(파/공략)을 담은 ZIP을 올리면
+            PAR · 야디지 · 그린 · 언듈레이션 · 홀 공략과 1H/10H 코스명을 한 번에 채웁니다.
           </div>
           <CourseZipRow
             fileName={zipFileName}

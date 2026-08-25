@@ -33,6 +33,7 @@ async function initDB() {
   await sql`ALTER TABLE event_pages ADD COLUMN IF NOT EXISTS valley_course_name TEXT`;
   await sql`ALTER TABLE event_pages ADD COLUMN IF NOT EXISTS lake_course_name TEXT`;
   await sql`ALTER TABLE event_pages ADD COLUMN IF NOT EXISTS hole_tips JSONB DEFAULT '[]'::jsonb`;
+  await sql`ALTER TABLE event_pages ADD COLUMN IF NOT EXISTS undulation_images JSONB DEFAULT '[]'::jsonb`;
 }
 
 export async function GET() {
@@ -62,7 +63,7 @@ export async function POST(request) {
       valley_course_name, lake_course_name,
       award_text, settlement_text,
       lunch, notice,
-      par_info, yardage_images, green_images, hole_tips,
+      par_info, yardage_images, green_images, hole_tips, undulation_images,
     } = body;
 
     if (!slug || !title) {
@@ -77,7 +78,7 @@ export async function POST(request) {
         valley_course_name, lake_course_name,
         award_text, settlement_text,
         lunch, notice,
-        par_info, yardage_images, green_images, hole_tips,
+        par_info, yardage_images, green_images, hole_tips, undulation_images,
         updated_at
       )
       VALUES (
@@ -102,6 +103,7 @@ export async function POST(request) {
         ${JSON.stringify(yardage_images || [])},
         ${JSON.stringify(green_images || [])},
         ${JSON.stringify(hole_tips || [])},
+        ${JSON.stringify(undulation_images || [])},
         NOW()
       )
       ON CONFLICT (slug) DO UPDATE SET
@@ -125,6 +127,7 @@ export async function POST(request) {
         yardage_images      = EXCLUDED.yardage_images,
         green_images        = EXCLUDED.green_images,
         hole_tips           = EXCLUDED.hole_tips,
+        undulation_images   = EXCLUDED.undulation_images,
         updated_at          = NOW()
     `;
 
