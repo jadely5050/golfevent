@@ -89,13 +89,15 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
     setTutorialStep(1);
   };
 
-  const nextTutorial = () => { if (tutorialStep < 4) setTutorialStep(s => s + 1); else setTutorialStep(0); };
+  const TUTORIAL_STEP_COUNT = 5;
+  const nextTutorial = () => { if (tutorialStep < TUTORIAL_STEP_COUNT) setTutorialStep(s => s + 1); else setTutorialStep(0); };
 
   const TUTORIAL_DATA = {
     1: { id: 'step-hole', text: '홀 번호를 누르면 원하는 홀로 바로 이동할 수 있습니다.', pos: 'bottom' },
     2: { id: 'step-home', text: '홈 버튼을 누르면 행사 안내 페이지로 돌아갑니다.', pos: 'bottom' },
     3: { id: 'step-green', text: '그린 라이를 누르면 전체 화면으로 크게 볼 수 있습니다.', pos: 'top' },
-    4: { id: 'step-nav', text: '이전 홀과 다음 홀로 빠르게 이동합니다.', pos: 'top' },
+    4: { id: 'step-undulation', text: '언듈레이션을 누르면 전체 화면으로 크게 볼 수 있습니다.', pos: 'top' },
+    5: { id: 'step-nav', text: '이전 홀과 다음 홀로 빠르게 이동합니다.', pos: 'top' },
   };
 
   return (
@@ -245,7 +247,7 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
 
       {/* ── 튜토리얼 스포트라이트 ── */}
       {tutorialStep > 0 && (
-        <TutorialSpotlight step={tutorialStep} data={TUTORIAL_DATA[tutorialStep]} onNext={nextTutorial} totalSteps={4} />
+        <TutorialSpotlight step={tutorialStep} data={TUTORIAL_DATA[tutorialStep]} onNext={nextTutorial} totalSteps={TUTORIAL_STEP_COUNT} />
       )}
     </div>
   );
@@ -254,8 +256,15 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
 function TutorialSpotlight({ step, data, onNext, totalSteps }) {
   const [rect, setRect] = useState(null);
   useEffect(() => {
+    setRect(null);
     const el = document.getElementById(data.id);
-    if (el) setRect(el.getBoundingClientRect());
+    if (el) {
+      setRect(el.getBoundingClientRect());
+    } else {
+      // 언듈레이션처럼 홀에 따라 없을 수 있는 요소는 건너뛰고 다음 단계로.
+      onNext();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, data.id]);
   if (!rect) return null;
 

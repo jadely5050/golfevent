@@ -60,6 +60,7 @@ export default function YardageDrawingBoard({ yardageSrc, undulationSrc }) {
         // 우하단 공략/그린 썸네일과 안 겹치도록 폭을 고정하고, 왼쪽에 붙여서 야디지 바로 아래에 배치한다.
         // 누르면 그린처럼 전체화면 모달로 크게 볼 수 있다.
         <div
+          id="step-undulation"
           onClick={() => setShowUndulationModal(true)}
           style={{ flex: '1 1 auto', alignSelf: 'flex-start', minHeight: 0, width: '64%', maxWidth: '64%', marginRight: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '0.3rem 0 0.4rem 0.75rem', overflow: 'hidden', boxSizing: 'border-box', cursor: 'pointer', pointerEvents: 'auto' }}
         >
