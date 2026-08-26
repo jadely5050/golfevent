@@ -4,10 +4,12 @@ import { useState, useRef, useEffect } from 'react';
 
 export default function YardageDrawingBoard({ yardageSrc, undulationSrc }) {
   const [scale, setScale] = useState(1);
+  const [showUndulationModal, setShowUndulationModal] = useState(false);
   const containerRef = useRef(null);
   const initialPinchDist = useRef(null);
 
   useEffect(() => { setScale(1); }, [yardageSrc]);
+  useEffect(() => { setShowUndulationModal(false); }, [undulationSrc]);
 
   const handleTouchStart = (e) => {
     if (e.touches.length === 2) {
@@ -55,15 +57,26 @@ export default function YardageDrawingBoard({ yardageSrc, undulationSrc }) {
       </div>
 
       {undulationSrc && (
-        // 우하단 공략/그린 썸네일과 안 겹치도록 폭 자체를 좁게 고정하고, 왼쪽에 붙여서 야디지 바로 아래에 배치한다.
-        <div style={{ flex: '1 1 auto', alignSelf: 'flex-start', minHeight: 0, width: '56%', maxWidth: '56%', marginRight: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '0.3rem 0 0.4rem 0.75rem', overflow: 'hidden', boxSizing: 'border-box' }}>
+        // 우하단 공략/그린 썸네일과 안 겹치도록 폭을 고정하고, 왼쪽에 붙여서 야디지 바로 아래에 배치한다.
+        // 누르면 그린처럼 전체화면 모달로 크게 볼 수 있다.
+        <div
+          onClick={() => setShowUndulationModal(true)}
+          style={{ flex: '1 1 auto', alignSelf: 'flex-start', minHeight: 0, width: '64%', maxWidth: '64%', marginRight: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '0.3rem 0 0.4rem 0.75rem', overflow: 'hidden', boxSizing: 'border-box', cursor: 'pointer' }}
+        >
           <div style={{ fontSize: '0.65rem', color: '#38bdf8', fontWeight: 'bold', marginBottom: '2px' }}>언듈레이션</div>
           <img
             src={undulationSrc}
             alt="언듈레이션"
-            style={{ maxWidth: '100%', maxHeight: 'calc(100% - 16px)', objectFit: 'contain', objectPosition: 'left top', display: 'block', borderRadius: '4px' }}
+            style={{ maxWidth: '100%', maxHeight: 'calc(100% - 16px)', objectFit: 'contain', objectPosition: 'left top', display: 'block', borderRadius: '4px', pointerEvents: 'none' }}
             onError={(e) => { e.target.style.display = 'none'; }}
           />
+        </div>
+      )}
+
+      {showUndulationModal && undulationSrc && (
+        <div onClick={() => setShowUndulationModal(false)} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button onClick={() => setShowUndulationModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: '40px', height: '40px', color: 'white', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 301 }}>✕</button>
+          <img src={undulationSrc} alt="언듈레이션 전체화면" onClick={e => e.stopPropagation()} style={{ maxWidth: '92vw', maxHeight: '92vh', width: 'auto', height: 'auto', borderRadius: '12px', boxShadow: '0 8px 40px rgba(0,0,0,0.6)', objectFit: 'contain' }} />
         </div>
       )}
     </div>
