@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { track } from '@vercel/analytics';
 
-export default function YardageDrawingBoard({ yardageSrc, undulationSrc }) {
+export default function YardageDrawingBoard({ yardageSrc, undulationSrc, slug, hole }) {
   const [scale, setScale] = useState(1);
   const [showUndulationModal, setShowUndulationModal] = useState(false);
   const containerRef = useRef(null);
@@ -61,7 +62,7 @@ export default function YardageDrawingBoard({ yardageSrc, undulationSrc }) {
         // 누르면 그린처럼 전체화면 모달로 크게 볼 수 있다.
         <div
           id="step-undulation"
-          onClick={() => setShowUndulationModal(true)}
+          onClick={() => { setShowUndulationModal(true); track('언듈레이션_클릭', { slug, hole }); }}
           style={{ flex: '1 1 auto', alignSelf: 'flex-start', minHeight: 0, width: '64%', maxWidth: '64%', marginRight: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '0.3rem 0 0.4rem 0.75rem', overflow: 'hidden', boxSizing: 'border-box', cursor: 'pointer', pointerEvents: 'auto' }}
         >
           <div style={{ fontSize: '0.65rem', color: '#38bdf8', fontWeight: 'bold', marginBottom: '2px' }}>언듈레이션</div>

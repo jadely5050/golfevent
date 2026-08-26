@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { track } from '@vercel/analytics';
 
 const EDIT_PASSWORD = '19391939';
 
@@ -131,7 +132,7 @@ export default function EventHome({ event, slug }) {
         {hasLunch && (
           <div className="ev-tab-container">
             <div className={`ev-tab-btn ${activeTab === 'event' ? 'active' : ''}`} onClick={() => setActiveTab('event')}>📍 행사 개요</div>
-            <div className={`ev-tab-btn ${activeTab === 'lunch' ? 'active' : ''}`} onClick={() => setActiveTab('lunch')}>🍽️ 중식 안내</div>
+            <div className={`ev-tab-btn ${activeTab === 'lunch' ? 'active' : ''}`} onClick={() => { setActiveTab('lunch'); track('중식_탭_클릭', { slug }); }}>🍽️ 중식 안내</div>
           </div>
         )}
 

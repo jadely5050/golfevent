@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { track } from '@vercel/analytics';
 import YardageDrawingBoard from './YardageDrawingBoard';
 
 export default function RecordViewer({ slug, courseName, parInfo, yardageImages, greenImages, undulationImages = [], groups, valleyCourseName, lakeCourseName, holeTips = [] }) {
@@ -108,7 +109,7 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
           {/* 좌: 홀 정보 */}
           <div id="step-hole" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '2px 6px', borderRadius: '4px' }}>
             <h3 style={{ margin: 0, fontSize: '1rem', color: 'white', fontWeight: 'bold' }}>
-              <span onClick={() => setShowHoleSelectModal(true)} style={{ color: 'var(--accent-neon)', cursor: 'pointer' }}>
+              <span onClick={() => { setShowHoleSelectModal(true); track('홀_선택_클릭', { slug }); }} style={{ color: 'var(--accent-neon)', cursor: 'pointer' }}>
                 {getDisplayHoleNumber(currentHole.hole)}H ▾
               </span>
             </h3>
@@ -126,14 +127,14 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
           {/* 우: 버튼들 */}
           <div style={{ display: 'flex', gap: '0.4rem' }}>
             <button onClick={() => setTutorialStep(1)} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', fontSize: '0.8rem', padding: '0.2rem 0.5rem', borderRadius: '5px', color: 'rgba(255,255,255,0.8)', fontWeight: 'bold' }}>?</button>
-            <button id="step-home" onClick={() => router.push(`/go/${encodeURIComponent(slug)}`)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', fontSize: '0.9rem', padding: '0.2rem 0.4rem', borderRadius: '5px' }}>🏠</button>
+            <button id="step-home" onClick={() => { track('홈_버튼_클릭', { slug, hole: currentHole.hole }); router.push(`/go/${encodeURIComponent(slug)}`); }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', fontSize: '0.9rem', padding: '0.2rem 0.4rem', borderRadius: '5px' }}>🏠</button>
           </div>
         </div>
       </div>
 
       {/* ── 야디지 (하단에 언듈레이션 이미지 상시 표시) ── */}
       <div className="hole-yardage-container">
-        <YardageDrawingBoard yardageSrc={yardageSrc} undulationSrc={undulationImgSrc} />
+        <YardageDrawingBoard yardageSrc={yardageSrc} undulationSrc={undulationImgSrc} slug={slug} hole={currentHole.hole} />
       </div>
 
       {/* ── 우하단: 공략 + 그린 + 이동 버튼 ── */}
@@ -141,7 +142,7 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
         {/* 공략 버튼 (그린 썸네일 위) */}
         {currentTip && (
           <button
-            onClick={() => setShowTipModal(true)}
+            onClick={() => { setShowTipModal(true); track('공략_버튼_클릭', { slug, hole: currentHole.hole }); }}
             style={{ width: '90px', padding: '0.5rem 0', background: 'rgba(15,23,42,0.85)', border: '1px solid rgba(250,204,21,0.5)', borderRadius: '10px', color: '#facc15', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', backdropFilter: 'blur(6px)', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', letterSpacing: '0.06em' }}
             title="홀 공략"
           >
@@ -151,7 +152,7 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
 
         {/* 그린 썸네일 */}
         {greenImgSrc && (
-          <div id="step-green" onClick={() => setShowGreenModal(true)} style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(16,185,129,0.4)', background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(6px)', width: '90px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', cursor: 'pointer' }}>
+          <div id="step-green" onClick={() => { setShowGreenModal(true); track('그린_썸네일_클릭', { slug, hole: currentHole.hole }); }} style={{ borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(16,185,129,0.4)', background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(6px)', width: '90px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', cursor: 'pointer' }}>
             <div style={{ fontSize: '0.7rem', color: 'var(--accent-neon)', textAlign: 'center', padding: '0.3rem 0', fontWeight: 'bold' }}>GREEN</div>
             <img src={greenImgSrc} alt="Green" style={{ width: '100%', height: 'auto', display: 'block', pointerEvents: 'none' }} onError={(e) => e.target.style.display = 'none'} />
           </div>
@@ -159,8 +160,8 @@ export default function RecordViewer({ slug, courseName, parInfo, yardageImages,
 
         {/* 홀 이동 버튼 */}
         <div id="step-nav" style={{ display: 'flex', gap: '1rem' }}>
-          <button className="btn" style={{ width: '55px', height: '55px', borderRadius: '50%', padding: 0, background: 'rgba(15,23,42,0.9)', border: '2px solid var(--accent-neon)', boxShadow: '0 0 15px rgba(16,185,129,0.4)', color: 'var(--accent-neon)', fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }} onClick={() => setCurrentHoleIdx(i => (i - 1 + 18) % 18)}>◀</button>
-          <button className="btn" style={{ width: '55px', height: '55px', borderRadius: '50%', padding: 0, background: 'var(--accent-neon)', border: '2px solid var(--accent-neon)', boxShadow: '0 0 20px rgba(16,185,129,0.6)', color: '#050806', fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => setCurrentHoleIdx(i => (i + 1) % 18)}>▶</button>
+          <button className="btn" style={{ width: '55px', height: '55px', borderRadius: '50%', padding: 0, background: 'rgba(15,23,42,0.9)', border: '2px solid var(--accent-neon)', boxShadow: '0 0 15px rgba(16,185,129,0.4)', color: 'var(--accent-neon)', fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }} onClick={() => { setCurrentHoleIdx(i => (i - 1 + 18) % 18); track('이전_홀_클릭', { slug }); }}>◀</button>
+          <button className="btn" style={{ width: '55px', height: '55px', borderRadius: '50%', padding: 0, background: 'var(--accent-neon)', border: '2px solid var(--accent-neon)', boxShadow: '0 0 20px rgba(16,185,129,0.6)', color: '#050806', fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => { setCurrentHoleIdx(i => (i + 1) % 18); track('다음_홀_클릭', { slug }); }}>▶</button>
         </div>
       </div>
 
