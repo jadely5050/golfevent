@@ -61,7 +61,7 @@ export default function YardageDrawingBoard({ yardageSrc, undulationSrc }) {
         // 누르면 그린처럼 전체화면 모달로 크게 볼 수 있다.
         <div
           onClick={() => setShowUndulationModal(true)}
-          style={{ flex: '1 1 auto', alignSelf: 'flex-start', minHeight: 0, width: '64%', maxWidth: '64%', marginRight: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '0.3rem 0 0.4rem 0.75rem', overflow: 'hidden', boxSizing: 'border-box', cursor: 'pointer' }}
+          style={{ flex: '1 1 auto', alignSelf: 'flex-start', minHeight: 0, width: '64%', maxWidth: '64%', marginRight: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '0.3rem 0 0.4rem 0.75rem', overflow: 'hidden', boxSizing: 'border-box', cursor: 'pointer', pointerEvents: 'auto' }}
         >
           <div style={{ fontSize: '0.65rem', color: '#38bdf8', fontWeight: 'bold', marginBottom: '2px' }}>언듈레이션</div>
           <img
@@ -74,7 +74,7 @@ export default function YardageDrawingBoard({ yardageSrc, undulationSrc }) {
       )}
 
       {showUndulationModal && undulationSrc && (
-        <div onClick={() => setShowUndulationModal(false)} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div onClick={() => setShowUndulationModal(false)} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto' }}>
           <button onClick={() => setShowUndulationModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: '40px', height: '40px', color: 'white', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 301 }}>✕</button>
           <img src={undulationSrc} alt="언듈레이션 전체화면" onClick={e => e.stopPropagation()} style={{ maxWidth: '92vw', maxHeight: '92vh', width: 'auto', height: 'auto', borderRadius: '12px', boxShadow: '0 8px 40px rgba(0,0,0,0.6)', objectFit: 'contain' }} />
         </div>
