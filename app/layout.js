@@ -1,5 +1,6 @@
 import './globals.css';
 import Script from 'next/script';
+import { Analytics } from '@vercel/analytics/react';
 
 export const metadata = {
   title: 'Golf Tracker PRO',
@@ -18,6 +19,7 @@ export default function RootLayout({ children }) {
           />
         )}
         {children}
+        <Analytics />
       </body>
     </html>
   );
