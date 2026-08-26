@@ -55,8 +55,8 @@ export default function YardageDrawingBoard({ yardageSrc, undulationSrc }) {
       </div>
 
       {undulationSrc && (
-        // 우하단 공략/그린 썸네일(약 100px)과 안 겹치도록 오른쪽 여백을 남기고, 야디지 바로 아래에 붙인다.
-        <div style={{ flex: '1 1 auto', minHeight: 0, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '0.3rem 100px 0.4rem 0.75rem', overflow: 'hidden' }}>
+        // 우하단 공략/그린 썸네일과 안 겹치도록 폭 자체를 좁게 고정하고, 야디지 바로 아래에 붙인다.
+        <div style={{ flex: '1 1 auto', minHeight: 0, width: '56%', maxWidth: '56%', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '0.3rem 0 0.4rem 0.75rem', overflow: 'hidden', boxSizing: 'border-box' }}>
           <div style={{ fontSize: '0.65rem', color: '#38bdf8', fontWeight: 'bold', marginBottom: '2px' }}>언듈레이션</div>
           <img
             src={undulationSrc}
